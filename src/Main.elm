@@ -1,14 +1,11 @@
 module Main exposing (main)
 
 import Browser
-import Element exposing (Attribute, Element, el, html, layout, none, text)
-import Element.Border as Border
-import Element.Font as Font
-import Element.Input as Input
+import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html)
-import Html.Attributes
+import Html exposing (Html, div, text)
+import Html.Events exposing (onClick)
 import Json.Decode as D
 import Json.Encode as E
 import Ports
@@ -95,23 +92,68 @@ init flags =
 
 view : Model -> Html Msg
 view model =
-    layout
-        [ Font.family [ Font.monospace ]
-        , padding
+    div []
+        [ navbar
+        , model.error
+            |> Maybe.withDefault ""
+            |> text
+        , model.imageData
+            |> Maybe.map imageDataView
+            |> Maybe.withDefault (text "")
         ]
-    <|
-        column []
-            [ row [ larger ]
-                [ text "Petrus"
-                , button { onPress = Just OpenButtonClicked, label = text "OPEN" }
+
+
+navbar : Html Msg
+navbar =
+    Bulma.navbar []
+        [ Bulma.navbarBrand []
+            [ Bulma.navbarItem [] [ logo ]
+            , Bulma.navbarItem []
+                [ Bulma.button [ onClick OpenButtonClicked ]
+                    [ text "Open" ]
                 ]
-            , model.error
-                |> Maybe.map text
-                |> Maybe.withDefault none
-            , model.imageData
-                |> Maybe.map (el [] << html << imageDataView)
-                |> Maybe.withDefault none
             ]
+        ]
+
+
+logo : Svg msg
+logo =
+    svg [ width "120", viewBox "0 0 24 5" ]
+        [ -- P
+          rect [ x "0", y "0", width "1", height "5" ] []
+        , rect [ x "1", y "0", width "1", height "1" ] []
+        , rect [ x "1", y "2", width "1", height "1" ] []
+        , rect [ x "2", y "0", width "1", height "2" ] []
+
+        -- E
+        , rect [ x "4", y "0", width "1", height "5" ] []
+        , rect [ x "5", y "0", width "2", height "1" ] []
+        , rect [ x "5", y "2", width "2", height "1" ] []
+        , rect [ x "5", y "4", width "2", height "1" ] []
+
+        -- T
+        , rect [ x "8", y "0", width "3", height "1" ] []
+        , rect [ x "9", y "1", width "1", height "4" ] []
+
+        -- R
+        , rect [ x "12", y "0", width "1", height "5" ] []
+        , rect [ x "13", y "0", width "1", height "1" ] []
+        , rect [ x "14", y "0", width "1", height "2" ] []
+        , rect [ x "14", y "3", width "1", height "2" ] []
+        , rect [ x "13", y "2", width "1", height "1" ] []
+
+        -- U
+        , rect [ x "16", y "0", width "1", height "5" ] []
+        , rect [ x "17", y "4", width "1", height "1" ] []
+        , rect [ x "18", y "0", width "1", height "5" ] []
+
+        -- S
+        , rect [ x "20", y "0", width "1", height "3" ] []
+        , rect [ x "20", y "4", width "2", height "1" ] []
+        , rect [ x "21", y "0", width "2", height "1" ] []
+        , rect [ x "21", y "2", width "1", height "1" ] []
+        , rect [ x "22", y "2", width "1", height "3" ] []
+        ]
 
 
 imageDataView : ImageData -> Svg msg
@@ -138,44 +180,6 @@ codelView codel =
                 ++ ")"
         ]
         []
-
-
-row : List (Attribute msg) -> List (Element msg) -> Element msg
-row a e =
-    Element.row (spacing :: a) e
-
-
-column : List (Attribute msg) -> List (Element msg) -> Element msg
-column a e =
-    Element.column (spacing :: a) e
-
-
-button : { onPress : Maybe msg, label : Element msg } -> Element msg
-button x =
-    Input.button
-        (List.append [ padding ] border)
-        x
-
-
-border : List (Attribute msg)
-border =
-    [ Border.solid, Border.width 1 ]
-
-
-padding : Attribute msg
-padding =
-    Element.padding 8
-
-
-spacing : Attribute msg
-spacing =
-    Element.spacing 8
-
-
-larger : Attribute msg
-larger =
-    Element.htmlAttribute <|
-        Html.Attributes.style "font-size" "larger"
 
 
 
