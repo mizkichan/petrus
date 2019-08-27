@@ -40,7 +40,7 @@ type alias Flags =
 
 
 type alias Model =
-    { error : Maybe String
+    { error : String
     , imageData : Maybe ImageData
     }
 
@@ -78,7 +78,7 @@ type Msg
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { error = Nothing
+    ( { error = ""
       , imageData = Nothing
       }
     , Cmd.none
@@ -93,9 +93,12 @@ view : Model -> Html Msg
 view model =
     div []
         [ navbar
-        , model.error
-            |> Maybe.withDefault ""
-            |> text
+        , if not <| String.isEmpty model.error then
+            Bulma.notification [ Bulma.danger ]
+                [ text model.error ]
+
+          else
+            text ""
         , model.imageData
             |> Maybe.map imageDataView
             |> Maybe.withDefault (text "")
@@ -201,42 +204,63 @@ update msg model =
             case
                 decodeImageData value
             of
-                Ok (Ok imageData) ->
-                    ( { model | imageData = Just imageData }
+                Ok imageData ->
+                    ( { model | imageData = Just imageData, error = "" }
                     , Cmd.none
                     )
 
-                Ok (Err err) ->
-                    ( { model | error = Just err }
-                    , Cmd.none
-                    )
-
-                Err err ->
-                    ( { model | error = Just <| D.errorToString err }
+                Err error ->
+                    ( { model | error = error }
                     , Cmd.none
                     )
 
 
-decodeImageData : D.Value -> Result D.Error (Result String ImageData)
+decodeImageData : D.Value -> Result String ImageData
 decodeImageData =
-    D.oneOf
-        [ D.map Err D.string
-        , D.map Ok <|
-            D.map3 ImageData
+    let
+        splitIntoColors list =
+            case list of
+                [] ->
+                    []
+
+                [ _ ] ->
+                    []
+
+                [ _, _ ] ->
+                    []
+
+                [ _, _, _ ] ->
+                    []
+
+                r :: g :: b :: _ :: rest ->
+                    ( r, g, b ) :: splitIntoColors rest
+
+        colorToCodel w i ( r, g, b ) =
+            Codel (modBy w i) (i // w) r g b
+
+        widthHeightDecoder =
+            D.map2 Tuple.pair
                 (D.field "width" D.int)
                 (D.field "height" D.int)
-                (D.field "data" <|
-                    D.list <|
-                        D.map5
-                            Codel
-                            (D.field "x" D.int)
-                            (D.field "y" D.int)
-                            (D.field "r" D.int)
-                            (D.field "g" D.int)
-                            (D.field "b" D.int)
-                )
-        ]
-        |> D.decodeValue
+
+        makeDataDecoder ( w, h ) =
+            D.field "data" (D.list D.int)
+                |> D.map
+                    (ImageData w h
+                        << List.indexedMap (colorToCodel w)
+                        << splitIntoColors
+                    )
+
+        flattenResult =
+            Result.andThen identity << Result.mapError D.errorToString
+    in
+    D.decodeValue
+        (D.oneOf
+            [ D.map Err D.string
+            , widthHeightDecoder |> D.andThen makeDataDecoder |> D.map Ok
+            ]
+        )
+        >> flattenResult
 
 
 

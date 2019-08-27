@@ -15,13 +15,7 @@ app.ports.decodeImage.subscribe(uri => {
       canvas.height = height;
       context.drawImage(image, 0, 0, width, height);
       const imageData = context.getImageData(0, 0, width, height);
-      const data = [];
-      for (let y = 0; y < height; ++y) {
-        for (let x = 0; x < width; ++x) {
-          const [r, g, b] = imageData.data.slice((x + y * width) * 4);
-          data.push({ x, y, r, g, b });
-        }
-      }
+      const data = Array.from(imageData.data);
       app.ports.imageDecoded.send({ width, height, data });
     })
     .catch(err => app.ports.imageDecoded.send(err.message));
