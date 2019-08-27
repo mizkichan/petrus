@@ -7,7 +7,6 @@ import File.Select exposing (file)
 import Html exposing (Html, div, text)
 import Html.Events exposing (onClick)
 import Json.Decode as D
-import Json.Encode as E
 import Ports
 import Svg exposing (Svg, rect, svg)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
@@ -70,7 +69,7 @@ type Msg
     = OpenButtonClicked
     | FileSelected File
     | UrlEncoded String
-    | ImageDecoded E.Value
+    | ImageDecoded D.Value
 
 
 
@@ -218,7 +217,7 @@ update msg model =
                     )
 
 
-decodeImageData : E.Value -> Result D.Error (Result String ImageData)
+decodeImageData : D.Value -> Result D.Error (Result String ImageData)
 decodeImageData =
     D.oneOf
         [ D.map Err D.string
