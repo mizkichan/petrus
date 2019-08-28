@@ -1,6 +1,6 @@
-module Bulma exposing (button, danger, navbar, navbarBrand, navbarItem, notification)
+module Bulma exposing (button, danger, delete, navbar, navbarBrand, navbarItem, notification)
 
-import Html exposing (Attribute, Html, a, div)
+import Html exposing (Attribute, Html, div)
 import Html.Attributes exposing (class)
 
 
@@ -30,12 +30,17 @@ navbarItem =
 
 button : E msg
 button =
-    builder a [ class "button" ]
+    builder div [ class "button" ]
 
 
 notification : E msg
 notification =
     builder div [ class "notification" ]
+
+
+delete : E msg
+delete =
+    builder div [ class "delete" ]
 
 
 danger : Attribute msg

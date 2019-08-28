@@ -4,7 +4,8 @@ import Browser
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, img, text)
+import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Json.Decode as D
 import Ports
@@ -32,7 +33,7 @@ main =
 
 
 type alias Flags =
-    ()
+    String
 
 
 
@@ -40,7 +41,8 @@ type alias Flags =
 
 
 type alias Model =
-    { error : String
+    { logoUrl : String
+    , error : String
     , imageData : Maybe ImageData
     }
 
@@ -78,7 +80,8 @@ type Msg
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { error = ""
+    ( { logoUrl = flags
+      , error = ""
       , imageData = Nothing
       }
     , Cmd.none
@@ -92,10 +95,12 @@ init flags =
 view : Model -> Html Msg
 view model =
     div []
-        [ navbar
+        [ navbar model.logoUrl
         , if not <| String.isEmpty model.error then
             Bulma.notification [ Bulma.danger ]
-                [ text model.error ]
+                [ text model.error
+                , Bulma.delete [] []
+                ]
 
           else
             text ""
@@ -105,56 +110,17 @@ view model =
         ]
 
 
-navbar : Html Msg
-navbar =
+navbar : String -> Html Msg
+navbar logoUrl =
     Bulma.navbar []
         [ Bulma.navbarBrand []
-            [ Bulma.navbarItem [] [ logo ]
+            [ Bulma.navbarItem []
+                [ img [ src logoUrl ] [] ]
             , Bulma.navbarItem []
                 [ Bulma.button [ onClick OpenButtonClicked ]
                     [ text "Open" ]
                 ]
             ]
-        ]
-
-
-logo : Svg msg
-logo =
-    svg [ width "120", viewBox "0 0 24 5" ]
-        [ -- P
-          rect [ x "0", y "0", width "1", height "5" ] []
-        , rect [ x "1", y "0", width "1", height "1" ] []
-        , rect [ x "1", y "2", width "1", height "1" ] []
-        , rect [ x "2", y "0", width "1", height "2" ] []
-
-        -- E
-        , rect [ x "4", y "0", width "1", height "5" ] []
-        , rect [ x "5", y "0", width "2", height "1" ] []
-        , rect [ x "5", y "2", width "2", height "1" ] []
-        , rect [ x "5", y "4", width "2", height "1" ] []
-
-        -- T
-        , rect [ x "8", y "0", width "3", height "1" ] []
-        , rect [ x "9", y "1", width "1", height "4" ] []
-
-        -- R
-        , rect [ x "12", y "0", width "1", height "5" ] []
-        , rect [ x "13", y "0", width "1", height "1" ] []
-        , rect [ x "14", y "0", width "1", height "2" ] []
-        , rect [ x "14", y "3", width "1", height "2" ] []
-        , rect [ x "13", y "2", width "1", height "1" ] []
-
-        -- U
-        , rect [ x "16", y "0", width "1", height "5" ] []
-        , rect [ x "17", y "4", width "1", height "1" ] []
-        , rect [ x "18", y "0", width "1", height "5" ] []
-
-        -- S
-        , rect [ x "20", y "0", width "1", height "3" ] []
-        , rect [ x "20", y "4", width "2", height "1" ] []
-        , rect [ x "21", y "0", width "2", height "1" ] []
-        , rect [ x "21", y "2", width "1", height "1" ] []
-        , rect [ x "22", y "2", width "1", height "3" ] []
         ]
 
 
@@ -218,25 +184,13 @@ update msg model =
 decodeImageData : D.Value -> Result String ImageData
 decodeImageData =
     let
-        splitIntoColors list =
+        splitIntoColors w i list =
             case list of
-                [] ->
-                    []
-
-                [ _ ] ->
-                    []
-
-                [ _, _ ] ->
-                    []
-
-                [ _, _, _ ] ->
-                    []
-
                 r :: g :: b :: _ :: rest ->
-                    ( r, g, b ) :: splitIntoColors rest
+                    Codel (modBy w i) (i // w) r g b :: splitIntoColors w (i + 4) rest
 
-        colorToCodel w i ( r, g, b ) =
-            Codel (modBy w i) (i // w) r g b
+                _ ->
+                    []
 
         widthHeightDecoder =
             D.map2 Tuple.pair
@@ -247,8 +201,7 @@ decodeImageData =
             D.field "data" (D.list D.int)
                 |> D.map
                     (ImageData w h
-                        << List.indexedMap (colorToCodel w)
-                        << splitIntoColors
+                        << splitIntoColors w 0
                     )
 
         flattenResult =

@@ -1,6 +1,10 @@
 import { Elm } from "./Main.elm";
+import logo from "../logo.svg";
 
-const app = Elm.Main.init({ node: document.querySelector("main") });
+const app = Elm.Main.init({
+  node: document.querySelector("main"),
+  flags: logo
+});
 
 app.ports.decodeImage.subscribe(uri => {
   const canvas = document.createElement("canvas");
