@@ -7,6 +7,7 @@ import File.Select exposing (file)
 import Html exposing (Html, div, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
+import Image exposing (Image)
 import Json.Decode as D
 import Ports
 import Svg exposing (Svg, rect, svg)
@@ -43,23 +44,7 @@ type alias Flags =
 type alias Model =
     { logoUrl : String
     , error : String
-    , imageData : Maybe ImageData
-    }
-
-
-type alias ImageData =
-    { width : Int
-    , height : Int
-    , data : List Codel
-    }
-
-
-type alias Codel =
-    { x : Int
-    , y : Int
-    , r : Int
-    , g : Int
-    , b : Int
+    , image : Maybe Image
     }
 
 
@@ -82,7 +67,7 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { logoUrl = flags
       , error = ""
-      , imageData = Nothing
+      , image = Nothing
       }
     , Cmd.none
     )
@@ -96,16 +81,13 @@ view : Model -> Html Msg
 view model =
     div []
         [ navbar model.logoUrl
-        , if not <| String.isEmpty model.error then
+        , viewIf (not <| String.isEmpty model.error) <|
             Bulma.notification [ Bulma.danger ]
                 [ text model.error
                 , Bulma.delete [] []
                 ]
-
-          else
-            text ""
-        , model.imageData
-            |> Maybe.map imageDataView
+        , model.image
+            |> Maybe.map imageView
             |> Maybe.withDefault (text "")
         ]
 
@@ -124,18 +106,18 @@ navbar logoUrl =
         ]
 
 
-imageDataView : ImageData -> Svg msg
-imageDataView imageData =
-    imageData.data
+imageView : Image -> Svg msg
+imageView image =
+    Image.getCodels image
         |> List.map codelView
         |> svg
             [ width "400"
             , height "400"
-            , viewBox <| joinInt "," [ 0, 0, imageData.width, imageData.height ]
+            , viewBox "0 0 50 50"
             ]
 
 
-codelView : Codel -> Svg msg
+codelView : Image.Codel -> Svg msg
 codelView codel =
     rect
         [ x <| String.fromInt <| codel.x
@@ -148,6 +130,15 @@ codelView codel =
                 ++ ")"
         ]
         []
+
+
+viewIf : Bool -> Html msg -> Html msg
+viewIf condition html =
+    if condition then
+        html
+
+    else
+        text ""
 
 
 
@@ -168,10 +159,10 @@ update msg model =
 
         ImageDecoded value ->
             case
-                decodeImageData value
+                decodeImage value
             of
-                Ok imageData ->
-                    ( { model | imageData = Just imageData, error = "" }
+                Ok image ->
+                    ( { model | image = Just image, error = "" }
                     , Cmd.none
                     )
 
@@ -181,39 +172,12 @@ update msg model =
                     )
 
 
-decodeImageData : D.Value -> Result String ImageData
-decodeImageData =
-    let
-        splitIntoColors w i list =
-            case list of
-                r :: g :: b :: _ :: rest ->
-                    Codel (modBy w i) (i // w) r g b :: splitIntoColors w (i + 4) rest
-
-                _ ->
-                    []
-
-        widthHeightDecoder =
-            D.map2 Tuple.pair
-                (D.field "width" D.int)
-                (D.field "height" D.int)
-
-        makeDataDecoder ( w, h ) =
-            D.field "data" (D.list D.int)
-                |> D.map
-                    (ImageData w h
-                        << splitIntoColors w 0
-                    )
-
-        flattenResult =
-            Result.andThen identity << Result.mapError D.errorToString
-    in
+decodeImage : D.Value -> Result String Image
+decodeImage =
     D.decodeValue
-        (D.oneOf
-            [ D.map Err D.string
-            , widthHeightDecoder |> D.andThen makeDataDecoder |> D.map Ok
-            ]
-        )
-        >> flattenResult
+        Image.decoder
+        >> Result.mapError D.errorToString
+        >> Result.andThen identity
 
 
 
