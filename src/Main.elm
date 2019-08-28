@@ -79,16 +79,20 @@ init flags =
 
 view : Model -> Html Msg
 view model =
-    div []
+    Bulma.container []
         [ navbar model.logoUrl
         , viewIf (not <| String.isEmpty model.error) <|
             Bulma.notification [ Bulma.danger ]
                 [ text model.error
                 , Bulma.delete [] []
                 ]
-        , model.image
-            |> Maybe.map imageView
-            |> Maybe.withDefault (text "")
+        , Bulma.columns []
+            [ Bulma.column []
+                [ model.image
+                    |> Maybe.map imageView
+                    |> Maybe.withDefault (text "")
+                ]
+            ]
         ]
 
 
