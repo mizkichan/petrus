@@ -6,23 +6,24 @@ const app = Elm.Main.init({
   flags: logo
 });
 
+const canvas = document.createElement("canvas");
+const context = canvas.getContext("2d");
+const image = new Image();
+image.addEventListener("load", () => {
+  const { width, height } = image;
+  canvas.width = width;
+  canvas.height = height;
+  context.drawImage(image, 0, 0, width, height);
+  const imageData = context.getImageData(0, 0, width, height);
+  const data = Array.from(imageData.data);
+  app.ports.imageDecoded.send({ width, height, data });
+});
+image.addEventListener("error", err => {
+  app.ports.imageDecoded.send(err.message);
+});
+
 app.ports.decodeImage.subscribe(uri => {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  const image = new Image();
   image.src = uri;
-  image
-    .decode()
-    .then(() => {
-      const { width, height } = image;
-      canvas.width = width;
-      canvas.height = height;
-      context.drawImage(image, 0, 0, width, height);
-      const imageData = context.getImageData(0, 0, width, height);
-      const data = Array.from(imageData.data);
-      app.ports.imageDecoded.send({ width, height, data });
-    })
-    .catch(err => app.ports.imageDecoded.send(err.message));
 });
 
 // vim: set ts=2 sw=2 et:
