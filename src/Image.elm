@@ -1,10 +1,17 @@
-module Image exposing (Codel, Image, decoder, getCodels)
+module Image exposing (Codel, Image, decode, getCodels)
 
 import Json.Decode as D
 
 
 type Image
     = Image (List Pixel)
+
+
+type alias ImageData =
+    { width : Int
+    , height : Int
+    , data : List Int
+    }
 
 
 type alias Pixel =
@@ -30,36 +37,51 @@ getCodels (Image codels) =
 -- DECODER
 
 
-intsToPixels : Int -> Int -> List Int -> List Pixel
-intsToPixels width i list =
+imageFromImageData : ImageData -> Image
+imageFromImageData { width, height, data } =
+    Image <| pixelsFromIntegers width 0 data []
+
+
+pixelsFromIntegers : Int -> Int -> List Int -> List Pixel -> List Pixel
+pixelsFromIntegers width i list result =
     case list of
         r :: g :: b :: _ :: rest ->
-            Pixel (modBy width (i // 4)) ((i // 4) // width) r g b
-                :: intsToPixels width (i + 4) rest
+            pixelsFromIntegers width
+                (i + 1)
+                rest
+                (Pixel (modBy width i) (i // width) r g b :: result)
 
         _ ->
-            []
+            result
 
 
-widthHeightDecoder : D.Decoder ( Int, Int )
-widthHeightDecoder =
-    D.map2 Tuple.pair
-        (D.field "width" D.int)
-        (D.field "height" D.int)
-
-
-makeDataDecoder : ( Int, Int ) -> D.Decoder Image
-makeDataDecoder ( width, _ ) =
-    D.field "data" (D.list D.int)
-        |> D.map (Image << intsToPixels width 0)
-
-
-decoder : D.Decoder (Result String Image)
+decoder : D.Decoder (Result String ImageData)
 decoder =
     D.oneOf
-        [ D.string |> D.map Err
-        , widthHeightDecoder |> D.andThen makeDataDecoder |> D.map Ok
+        [ D.map Ok <|
+            D.map3 ImageData
+                (D.field "width" D.int)
+                (D.field "height" D.int)
+                (D.field "data" (D.list D.int))
+        , D.map Err D.string
         ]
+
+
+decode : D.Value -> Result String Image
+decode =
+    D.decodeValue
+        decoder
+        >> flattenResult D.errorToString
+        >> Result.map imageFromImageData
+
+
+
+-- MISC
+
+
+flattenResult : (x -> y) -> Result x (Result y a) -> Result y a
+flattenResult func =
+    Result.mapError func >> Result.andThen identity
 
 
 

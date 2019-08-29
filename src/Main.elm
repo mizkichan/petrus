@@ -163,7 +163,7 @@ update msg model =
 
         ImageDecoded value ->
             case
-                decodeImage value
+                Image.decode value
             of
                 Ok image ->
                     ( { model | image = Just image, error = "" }
@@ -174,14 +174,6 @@ update msg model =
                     ( { model | error = error }
                     , Cmd.none
                     )
-
-
-decodeImage : D.Value -> Result String Image
-decodeImage =
-    D.decodeValue
-        Image.decoder
-        >> Result.mapError D.errorToString
-        >> Result.andThen identity
 
 
 
