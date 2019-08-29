@@ -4,8 +4,8 @@ import Browser
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, div, img, text)
-import Html.Attributes exposing (src)
+import Html exposing (Html, a, div, img, text)
+import Html.Attributes exposing (href, src)
 import Html.Events exposing (onClick)
 import Image exposing (Image)
 import Json.Decode as D
@@ -102,9 +102,19 @@ navbar logoUrl =
         [ Bulma.navbarBrand []
             [ Bulma.navbarItem []
                 [ img [ src logoUrl ] [] ]
-            , Bulma.navbarItem []
-                [ Bulma.button [ onClick OpenButtonClicked ]
-                    [ text "Open" ]
+            ]
+        , Bulma.navbarMenu []
+            [ Bulma.navbarStart []
+                [ Bulma.navbarItem []
+                    [ Bulma.button [ onClick OpenButtonClicked ]
+                        [ text "Open" ]
+                    ]
+                ]
+            , Bulma.navbarEnd []
+                [ Bulma.navbarItem []
+                    [ a []
+                        [ text "GitHub" ]
+                    ]
                 ]
             ]
         ]

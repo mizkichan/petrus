@@ -1,4 +1,4 @@
-module Bulma exposing (button, column, columns, container, danger, delete, navbar, navbarBrand, navbarItem, notification)
+module Bulma exposing (button, column, columns, container, danger, delete, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, navbarStart, notification)
 
 import Html exposing (Attribute, Html, div)
 import Html.Attributes exposing (class)
@@ -25,6 +25,21 @@ navbar =
 navbarBrand : E msg
 navbarBrand =
     builder div [ class "navbar-brand" ]
+
+
+navbarMenu : E msg
+navbarMenu =
+    builder div [ class "navbar-menu" ]
+
+
+navbarStart : E msg
+navbarStart =
+    builder div [ class "navbar-start" ]
+
+
+navbarEnd : E msg
+navbarEnd =
+    builder div [ class "navbar-end" ]
 
 
 navbarItem : E msg
