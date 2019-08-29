@@ -1,9 +1,11 @@
 import { Elm } from "./Main.elm";
-import logo from "../logo.svg";
+import logoUrl from "../logo.svg";
 
 const app = Elm.Main.init({
   node: document.querySelector("main"),
-  flags: logo
+  flags: {
+    logoUrl
+  }
 });
 
 const canvas = document.createElement("canvas");

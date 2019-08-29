@@ -19,7 +19,7 @@ import Task
 -- MAIN
 
 
-main : Program Flags Model Msg
+main : Program D.Value Model Msg
 main =
     Browser.element
         { init = init
@@ -34,7 +34,7 @@ main =
 
 
 type alias Flags =
-    String
+    { logoUrl : String }
 
 
 
@@ -63,14 +63,30 @@ type Msg
 -- INIT
 
 
-init : Flags -> ( Model, Cmd Msg )
+init : D.Value -> ( Model, Cmd Msg )
 init flags =
-    ( { logoUrl = flags
-      , error = ""
+    let
+        ( logoUrl, error ) =
+            case decodeFlags flags of
+                Ok decoded ->
+                    ( decoded.logoUrl, "" )
+
+                Err decodeError ->
+                    ( "", decodeError )
+    in
+    ( { logoUrl = logoUrl
+      , error = error
       , image = Nothing
       }
     , Cmd.none
     )
+
+
+decodeFlags : D.Value -> Result String Flags
+decodeFlags =
+    D.decodeValue
+        (D.map Flags (D.field "logoUrl" D.string))
+        >> Result.mapError D.errorToString
 
 
 
