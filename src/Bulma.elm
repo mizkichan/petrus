@@ -1,7 +1,8 @@
-module Bulma exposing (button, column, columns, container, danger, delete, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, navbarStart, notification)
+module Bulma exposing (button, column, columns, container, danger, delete, icon, large, navbar, navbarBrand, navbarEnd, navbarItemAnchor, navbarItemDiv, navbarMenu, navbarStart, notification, primary)
 
-import Html exposing (Attribute, Html, div)
+import Html exposing (Attribute, Html, a, div, i, nav, span)
 import Html.Attributes exposing (class)
+import Octicons
 
 
 type alias E msg =
@@ -19,7 +20,7 @@ builder element attributes =
 
 navbar : E msg
 navbar =
-    builder div [ class "navbar" ]
+    builder nav [ class "navbar" ]
 
 
 navbarBrand : E msg
@@ -42,9 +43,29 @@ navbarEnd =
     builder div [ class "navbar-end" ]
 
 
-navbarItem : E msg
-navbarItem =
-    builder div [ class "navbar-item" ]
+navbarItem :
+    (List (Attribute msg) -> List (Html msg) -> Html msg)
+    -> List (Attribute msg)
+    -> List (Html msg)
+    -> Html msg
+navbarItem func attributes elements =
+    func
+        (class "navbar-item" :: attributes)
+        elements
+
+
+navbarItemAnchor : List (Attribute msg) -> List (Html msg) -> Html msg
+navbarItemAnchor attributes elements =
+    a
+        (class "navbar-item" :: attributes)
+        elements
+
+
+navbarItemDiv : List (Attribute msg) -> List (Html msg) -> Html msg
+navbarItemDiv attributes elements =
+    div
+        (class "navbar-item" :: attributes)
+        elements
 
 
 button : E msg
@@ -77,6 +98,11 @@ column =
     builder div [ class "column" ]
 
 
+icon : E msg
+icon =
+    builder span [ class "icon" ]
+
+
 
 -- ATTRIBUTES
 
@@ -84,6 +110,16 @@ column =
 danger : Attribute msg
 danger =
     class "is-danger"
+
+
+large : Attribute msg
+large =
+    class "is-large"
+
+
+primary : Attribute msg
+primary =
+    class "is-primary"
 
 
 

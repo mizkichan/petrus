@@ -4,11 +4,12 @@ import Browser
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, a, div, img, text)
-import Html.Attributes exposing (href, src)
+import Html exposing (Html, img, span, text)
+import Html.Attributes exposing (href, src, target)
 import Html.Events exposing (onClick)
 import Image exposing (Image)
 import Json.Decode as D
+import Octicons
 import Ports
 import Svg exposing (Svg, rect, svg)
 import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
@@ -128,20 +129,28 @@ navbar : { logoUrl : String, repositoryUrl : String } -> Html Msg
 navbar { logoUrl, repositoryUrl } =
     Bulma.navbar []
         [ Bulma.navbarBrand []
-            [ Bulma.navbarItem []
+            [ Bulma.navbarItemDiv []
                 [ img [ src logoUrl ] [] ]
             ]
         , Bulma.navbarMenu []
             [ Bulma.navbarStart []
-                [ Bulma.navbarItem []
+                [ Bulma.navbarItemDiv []
                     [ Bulma.button [ onClick OpenButtonClicked ]
                         [ text "Open" ]
                     ]
                 ]
             , Bulma.navbarEnd []
-                [ Bulma.navbarItem []
-                    [ a [ href repositoryUrl ]
-                        [ text "GitHub" ]
+                [ Bulma.navbarItemAnchor
+                    [ href "http://www.dangermouse.net/esoteric/piet.html"
+                    , target "_blank"
+                    ]
+                    [ span [] [ text "Piet language specification" ]
+                    , Bulma.icon [] [ Octicons.linkExternal Octicons.defaultOptions ]
+                    ]
+                , Bulma.navbarItemAnchor
+                    [ href repositoryUrl ]
+                    [ Bulma.icon [] [ Octicons.markGithub Octicons.defaultOptions ]
+                    , span [] [ text "GitHub" ]
                     ]
                 ]
             ]
