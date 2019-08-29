@@ -1,10 +1,12 @@
 import { Elm } from "./Main.elm";
 import logoUrl from "../logo.svg";
+import package from "../package.json";
 
 const app = Elm.Main.init({
   node: document.querySelector("main"),
   flags: {
-    logoUrl
+    logoUrl,
+    repositoryUrl: package.repository.url
   }
 });
 

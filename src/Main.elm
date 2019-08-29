@@ -34,7 +34,23 @@ main =
 
 
 type alias Flags =
-    { logoUrl : String }
+    { logoUrl : String
+    , repositoryUrl : String
+    }
+
+
+defaultFlags : Flags
+defaultFlags =
+    Flags "" ""
+
+
+decodeFlags : D.Value -> Result D.Error Flags
+decodeFlags =
+    D.decodeValue
+        (D.map2 Flags
+            (D.field "logoUrl" D.string)
+            (D.field "repositoryUrl" D.string)
+        )
 
 
 
@@ -42,7 +58,7 @@ type alias Flags =
 
 
 type alias Model =
-    { logoUrl : String
+    { flags : Flags
     , error : String
     , image : Maybe Image
     }
@@ -66,27 +82,20 @@ type Msg
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        ( logoUrl, error ) =
+        ( decodedFlags, decodeError ) =
             case decodeFlags flags of
                 Ok decoded ->
-                    ( decoded.logoUrl, "" )
+                    ( decoded, "" )
 
-                Err decodeError ->
-                    ( "", decodeError )
+                Err error ->
+                    ( defaultFlags, D.errorToString error )
     in
-    ( { logoUrl = logoUrl
-      , error = error
+    ( { flags = decodedFlags
+      , error = decodeError
       , image = Nothing
       }
     , Cmd.none
     )
-
-
-decodeFlags : D.Value -> Result String Flags
-decodeFlags =
-    D.decodeValue
-        (D.map Flags (D.field "logoUrl" D.string))
-        >> Result.mapError D.errorToString
 
 
 
@@ -96,7 +105,10 @@ decodeFlags =
 view : Model -> Html Msg
 view model =
     Bulma.container []
-        [ navbar model.logoUrl
+        [ navbar
+            { logoUrl = model.flags.logoUrl
+            , repositoryUrl = model.flags.repositoryUrl
+            }
         , viewIf (not <| String.isEmpty model.error) <|
             Bulma.notification [ Bulma.danger ]
                 [ text model.error
@@ -112,8 +124,8 @@ view model =
         ]
 
 
-navbar : String -> Html Msg
-navbar logoUrl =
+navbar : { logoUrl : String, repositoryUrl : String } -> Html Msg
+navbar { logoUrl, repositoryUrl } =
     Bulma.navbar []
         [ Bulma.navbarBrand []
             [ Bulma.navbarItem []
@@ -128,7 +140,7 @@ navbar logoUrl =
                 ]
             , Bulma.navbarEnd []
                 [ Bulma.navbarItem []
-                    [ a []
+                    [ a [ href repositoryUrl ]
                         [ text "GitHub" ]
                     ]
                 ]
