@@ -1,8 +1,7 @@
-module Bulma exposing (button, column, columns, container, danger, delete, icon, large, navbar, navbarBrand, navbarEnd, navbarItemAnchor, navbarItemDiv, navbarMenu, navbarStart, notification, primary)
+module Bulma exposing (button, column, columns, container, danger, delete, icon, navbar, navbarBrand, navbarEnd, navbarItemAnchor, navbarItemDiv, navbarMenu, navbarStart, notification)
 
-import Html exposing (Attribute, Html, a, div, i, nav, span)
+import Html exposing (Attribute, Html, a, div, nav, span)
 import Html.Attributes exposing (class)
-import Octicons
 
 
 type alias E msg =
@@ -110,16 +109,6 @@ icon =
 danger : Attribute msg
 danger =
     class "is-danger"
-
-
-large : Attribute msg
-large =
-    class "is-large"
-
-
-primary : Attribute msg
-primary =
-    class "is-primary"
 
 
 
