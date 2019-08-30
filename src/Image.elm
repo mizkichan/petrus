@@ -1,4 +1,4 @@
-module Image exposing (Codel, Image, decode, getCodels)
+module Image exposing (Codel, Image, decode, empty, getCodels)
 
 import Json.Decode as D
 
@@ -31,6 +31,11 @@ type alias Codel =
 getCodels : Image -> List Pixel
 getCodels (Image codels) =
     codels
+
+
+empty : Image
+empty =
+    Image []
 
 
 

@@ -4,7 +4,7 @@ import Browser
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, img, span, text)
+import Html exposing (Html, a, br, div, img, span, text)
 import Html.Attributes exposing (href, src, target)
 import Html.Events exposing (onClick)
 import Image exposing (Image)
@@ -60,8 +60,14 @@ decodeFlags =
 
 type alias Model =
     { flags : Flags
-    , error : String
-    , image : Maybe Image
+    , notifications : List Notification
+    , image : Image
+    }
+
+
+type alias Notification =
+    { color : Bulma.Color
+    , message : String
     }
 
 
@@ -74,6 +80,7 @@ type Msg
     | FileSelected File
     | UrlEncoded String
     | ImageDecoded D.Value
+    | DeleteNotification Int
 
 
 
@@ -83,17 +90,17 @@ type Msg
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        ( decodedFlags, decodeError ) =
+        ( decodedFlags, notifications ) =
             case decodeFlags flags of
                 Ok decoded ->
-                    ( decoded, "" )
+                    ( decoded, [ Notification Bulma.Info "Hello, world!" ] )
 
                 Err error ->
-                    ( defaultFlags, D.errorToString error )
+                    ( defaultFlags, [ Notification Bulma.Danger <| D.errorToString error ] )
     in
     ( { flags = decodedFlags
-      , error = decodeError
-      , image = Nothing
+      , notifications = notifications
+      , image = Image.empty
       }
     , Cmd.none
     )
@@ -105,21 +112,17 @@ init flags =
 
 view : Model -> Html Msg
 view model =
-    Bulma.container []
+    div []
         [ navbar
             { logoUrl = model.flags.logoUrl
             , repositoryUrl = model.flags.repositoryUrl
             }
-        , viewIf (not <| String.isEmpty model.error) <|
-            Bulma.notification [ Bulma.danger ]
-                [ text model.error
-                , Bulma.delete [] []
-                ]
-        , Bulma.columns []
-            [ Bulma.column []
-                [ model.image
-                    |> Maybe.map imageView
-                    |> Maybe.withDefault (text "")
+        , notificationsView model.notifications
+        , Bulma.section []
+            [ Bulma.container []
+                [ Bulma.columns []
+                    [ Bulma.column [] [ imageView model.image ]
+                    ]
                 ]
             ]
         ]
@@ -128,44 +131,72 @@ view model =
 navbar : { logoUrl : String, repositoryUrl : String } -> Html Msg
 navbar { logoUrl, repositoryUrl } =
     Bulma.navbar []
-        [ Bulma.navbarBrand []
-            [ Bulma.navbarItemDiv []
-                [ img [ src logoUrl ] [] ]
-            ]
-        , Bulma.navbarMenu []
-            [ Bulma.navbarStart []
-                [ Bulma.navbarItemDiv []
-                    [ Bulma.button [ onClick OpenButtonClicked ]
-                        [ text "Open" ]
-                    ]
+        [ Bulma.container []
+            [ Bulma.navbarBrand []
+                [ Bulma.navbarItem div
+                    []
+                    [ img [ src logoUrl ] [] ]
                 ]
-            , Bulma.navbarEnd []
-                [ Bulma.navbarItemAnchor
-                    [ href "http://www.dangermouse.net/esoteric/piet.html"
-                    , target "_blank"
+            , Bulma.navbarMenu []
+                [ Bulma.navbarStart []
+                    [ Bulma.navbarItem div
+                        []
+                        [ Bulma.button [ onClick OpenButtonClicked ]
+                            [ text "Open" ]
+                        ]
                     ]
-                    [ span [] [ text "Piet language specification" ]
-                    , Bulma.icon [] [ Octicons.linkExternal Octicons.defaultOptions ]
-                    ]
-                , Bulma.navbarItemAnchor
-                    [ href repositoryUrl ]
-                    [ Bulma.icon [] [ Octicons.markGithub Octicons.defaultOptions ]
-                    , span [] [ text "GitHub" ]
+                , Bulma.navbarEnd []
+                    [ Bulma.navbarItem a
+                        [ href "http://www.dangermouse.net/esoteric/piet.html"
+                        , target "_blank"
+                        ]
+                        [ span [] [ text "Piet language specification" ]
+                        , Bulma.icon [] [ Octicons.linkExternal Octicons.defaultOptions ]
+                        ]
+                    , Bulma.navbarItem a
+                        [ href repositoryUrl ]
+                        [ Bulma.icon [] [ Octicons.markGithub Octicons.defaultOptions ]
+                        , span [] [ text "GitHub" ]
+                        ]
                     ]
                 ]
             ]
         ]
 
 
+notificationsView : List Notification -> Html Msg
+notificationsView notifications =
+    viewIf (not <| List.isEmpty notifications) <|
+        Bulma.section []
+            [ Bulma.container [] <|
+                List.indexedMap
+                    (\i notification ->
+                        notification.message
+                            |> String.lines
+                            |> List.map String.trim
+                            |> List.filter (not << String.isEmpty)
+                            |> List.map text
+                            |> List.intersperse (br [] [])
+                            |> (::) (Bulma.delete [ onClick <| DeleteNotification i ] [])
+                            |> Bulma.notification [ Bulma.fromColor notification.color ]
+                    )
+                    notifications
+            ]
+
+
 imageView : Image -> Svg msg
 imageView image =
-    Image.getCodels image
-        |> List.map codelView
-        |> svg
+    Bulma.box []
+        [ svg
             [ width "400"
             , height "400"
             , viewBox "0 0 50 50"
             ]
+            (image
+                |> Image.getCodels
+                |> List.map codelView
+            )
+        ]
 
 
 codelView : Image.Codel -> Svg msg
@@ -213,14 +244,25 @@ update msg model =
                 Image.decode value
             of
                 Ok image ->
-                    ( { model | image = Just image, error = "" }
+                    ( { model | image = image }
                     , Cmd.none
                     )
 
-                Err error ->
-                    ( { model | error = error }
+                Err message ->
+                    ( { model | notifications = Notification Bulma.Danger message :: model.notifications }
                     , Cmd.none
                     )
+
+        DeleteNotification i ->
+            ( { model
+                | notifications =
+                    List.concat
+                        [ List.take i model.notifications
+                        , List.drop (i + 1) model.notifications
+                        ]
+              }
+            , Cmd.none
+            )
 
 
 

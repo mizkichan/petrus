@@ -1,6 +1,6 @@
-module Bulma exposing (button, column, columns, container, danger, delete, icon, navbar, navbarBrand, navbarEnd, navbarItemAnchor, navbarItemDiv, navbarMenu, navbarStart, notification)
+module Bulma exposing (Color(..), box, button, column, columns, container, delete, fromColor, icon, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, navbarStart, notification, section)
 
-import Html exposing (Attribute, Html, a, div, nav, span)
+import Html exposing (Attribute, Html, div, nav, span)
 import Html.Attributes exposing (class)
 
 
@@ -11,6 +11,42 @@ type alias E msg =
 builder : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> E msg
 builder element attributes =
     element << List.append attributes
+
+
+
+-- TYPES AND UTILITIES
+
+
+type Color
+    = Primary
+    | Link
+    | Info
+    | Success
+    | Warning
+    | Danger
+
+
+fromColor : Color -> Attribute msg
+fromColor c =
+    class <|
+        case c of
+            Primary ->
+                "is-primary"
+
+            Link ->
+                "is-link"
+
+            Info ->
+                "is-info"
+
+            Success ->
+                "is-success"
+
+            Warning ->
+                "is-warning"
+
+            Danger ->
+                "is-danger"
 
 
 
@@ -53,20 +89,6 @@ navbarItem func attributes elements =
         elements
 
 
-navbarItemAnchor : List (Attribute msg) -> List (Html msg) -> Html msg
-navbarItemAnchor attributes elements =
-    a
-        (class "navbar-item" :: attributes)
-        elements
-
-
-navbarItemDiv : List (Attribute msg) -> List (Html msg) -> Html msg
-navbarItemDiv attributes elements =
-    div
-        (class "navbar-item" :: attributes)
-        elements
-
-
 button : E msg
 button =
     builder div [ class "button" ]
@@ -102,13 +124,14 @@ icon =
     builder span [ class "icon" ]
 
 
+box : E msg
+box =
+    builder div [ class "box" ]
 
--- ATTRIBUTES
 
-
-danger : Attribute msg
-danger =
-    class "is-danger"
+section : E msg
+section =
+    builder Html.section [ class "section" ]
 
 
 
