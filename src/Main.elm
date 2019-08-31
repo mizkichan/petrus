@@ -1,18 +1,19 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
+import Browser.Events exposing (onMouseMove)
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, br, div, img, span, text)
 import Html.Attributes exposing (href, src, target)
-import Html.Events exposing (onClick)
+import Html.Events as Events exposing (onClick, onMouseDown, onMouseUp)
 import Image exposing (Image)
 import Json.Decode as D
 import Octicons
 import Ports
 import Svg exposing (Svg, rect, svg)
-import Svg.Attributes exposing (fill, height, viewBox, width, x, y)
+import Svg.Attributes exposing (fill, height, transform, viewBox, width, x, y)
 import Task
 
 
@@ -64,6 +65,8 @@ type alias Model =
     { flags : Flags
     , notifications : List Notification
     , image : Image
+    , isMouseDown : Bool
+    , scale : Float
     }
 
 
@@ -83,6 +86,10 @@ type Msg
     | UrlEncoded String
     | ImageDecoded D.Value
     | DeleteNotification Int
+    | MouseDown
+    | MouseUp
+    | MouseMove ( Int, Int )
+    | Wheel Float
 
 
 
@@ -103,6 +110,8 @@ init flags =
     ( { flags = decodedFlags
       , notifications = notifications
       , image = Image.empty
+      , isMouseDown = False
+      , scale = 1.0
       }
     , Cmd.none
     )
@@ -123,7 +132,7 @@ view model =
         , Bulma.section []
             [ Bulma.container []
                 [ Bulma.columns []
-                    [ Bulma.column [] [ imageView model.image ]
+                    [ Bulma.column [] [ imageView model.scale model.image ]
                     ]
                 ]
             ]
@@ -186,13 +195,17 @@ notificationsView notifications =
             ]
 
 
-imageView : Image -> Svg msg
-imageView image =
-    Bulma.box []
+imageView : Float -> Image -> Svg Msg
+imageView scale image =
+    Bulma.box
+        [ onWheel Wheel ]
         [ svg
-            [ width "400"
-            , height "400"
+            [ width "100%"
+            , height "100%"
             , viewBox "0 0 50 50"
+            , onMouseDown MouseDown
+            , onMouseUp MouseUp
+            , transformScale scale
             ]
             (image
                 |> Image.getCodels
@@ -223,6 +236,27 @@ viewIf condition html =
 
     else
         text ""
+
+
+
+-- ATTRIBUTES
+
+
+transformScale : Float -> Svg.Attribute msg
+transformScale scale =
+    transform <| "scale(" ++ String.fromFloat scale ++ ")"
+
+
+
+-- EVENTS
+
+
+onWheel : (Float -> msg) -> Html.Attribute msg
+onWheel msg =
+    Events.preventDefaultOn "wheel" <|
+        D.map
+            (msg >> Tuple.pair >> (|>) True)
+            (D.field "deltaY" D.float)
 
 
 
@@ -270,6 +304,30 @@ update msg model =
             , Cmd.none
             )
 
+        MouseDown ->
+            ( { model | isMouseDown = True }, Cmd.none )
+
+        MouseUp ->
+            ( { model | isMouseDown = False }, Cmd.none )
+
+        MouseMove ( dx, dy ) ->
+            let
+                _ =
+                    Debug.log "movement" ( dx, dy )
+            in
+            ( model, Cmd.none )
+
+        Wheel delta ->
+            let
+                n =
+                    if delta < 0 then
+                        0.1
+
+                    else
+                        -0.1
+            in
+            ( { model | scale = clamp 1 50 (model.scale * 2 ^ n) }, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS
@@ -277,7 +335,18 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Ports.imageDecoded ImageDecoded
+    Sub.batch <|
+        List.filterMap identity <|
+            [ justIf model.isMouseDown (onMouseMove <| D.map MouseMove movementDecoder)
+            , Just <| Ports.imageDecoded ImageDecoded
+            ]
+
+
+movementDecoder : D.Decoder ( Int, Int )
+movementDecoder =
+    D.map2 Tuple.pair
+        (D.field "movementX" D.int)
+        (D.field "movementY" D.int)
 
 
 
@@ -288,6 +357,15 @@ joinInt : String -> List Int -> String
 joinInt separator =
     String.join separator
         << List.map String.fromInt
+
+
+justIf : Bool -> a -> Maybe a
+justIf condition value =
+    if condition then
+        Just value
+
+    else
+        Nothing
 
 
 
