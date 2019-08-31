@@ -3,7 +3,6 @@ import logoUrl from "../logo.svg";
 import package from "../package.json";
 
 const app = Elm.Main.init({
-  node: document.querySelector("main"),
   flags: {
     logoUrl,
     repositoryUrl: package.repository.url,
