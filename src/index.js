@@ -1,5 +1,5 @@
 import { Elm } from "./Main.elm";
-import logoUrl from "../logo.svg";
+import logoUrl from "../assets/logo.svg";
 import package from "../package.json";
 
 const app = Elm.Main.init({
