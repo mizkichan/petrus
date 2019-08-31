@@ -1,6 +1,6 @@
 module Main exposing (main)
 
-import Browser
+import Browser exposing (Document)
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
@@ -22,7 +22,7 @@ import Task
 
 main : Program D.Value Model Msg
 main =
-    Browser.element
+    Browser.document
         { init = init
         , view = view
         , update = update
@@ -37,20 +37,22 @@ main =
 type alias Flags =
     { logoUrl : String
     , repositoryUrl : String
+    , title : String
     }
 
 
 defaultFlags : Flags
 defaultFlags =
-    Flags "" ""
+    Flags "" "" ""
 
 
 decodeFlags : D.Value -> Result D.Error Flags
 decodeFlags =
     D.decodeValue
-        (D.map2 Flags
+        (D.map3 Flags
             (D.field "logoUrl" D.string)
             (D.field "repositoryUrl" D.string)
+            (D.field "title" D.string)
         )
 
 
@@ -110,9 +112,9 @@ init flags =
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-    div []
+    Document model.flags.title
         [ navbar
             { logoUrl = model.flags.logoUrl
             , repositoryUrl = model.flags.repositoryUrl

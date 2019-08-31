@@ -6,7 +6,8 @@ const app = Elm.Main.init({
   node: document.querySelector("main"),
   flags: {
     logoUrl,
-    repositoryUrl: package.repository.url
+    repositoryUrl: package.repository.url,
+    title: `${package.name} - ${package.description}`
   }
 });
 

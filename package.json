@@ -1,4 +1,6 @@
 {
+  "name": "Petrus",
+  "description": "A Piet compiler",
   "repository": {
     "type": "git",
     "url": "https://github.com/mizkichan/petrus"
