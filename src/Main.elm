@@ -12,7 +12,7 @@ import Image exposing (Image)
 import Json.Decode as D
 import Octicons
 import Ports
-import Svg exposing (Svg, rect, svg)
+import Svg exposing (Svg, g, rect, svg)
 import Svg.Attributes exposing (fill, height, transform, viewBox, width, x, y)
 import Task
 
@@ -197,20 +197,23 @@ notificationsView notifications =
 
 imageView : Float -> Image -> Svg Msg
 imageView scale image =
-    Bulma.box
-        [ onWheel Wheel ]
+    Bulma.box []
         [ svg
             [ width "100%"
             , height "100%"
             , viewBox "0 0 50 50"
             , onMouseDown MouseDown
             , onMouseUp MouseUp
-            , transformScale scale
+            , onWheel Wheel
             ]
-            (image
-                |> Image.getCodels
-                |> List.map codelView
-            )
+            [ g
+                [ transformScale scale
+                ]
+                (image
+                    |> Image.getCodels
+                    |> List.map codelView
+                )
+            ]
         ]
 
 
@@ -311,10 +314,7 @@ update msg model =
             ( { model | isMouseDown = False }, Cmd.none )
 
         MouseMove ( dx, dy ) ->
-            let
-                _ =
-                    Debug.log "movement" ( dx, dy )
-            in
+            {- TODO do something -}
             ( model, Cmd.none )
 
         Wheel delta ->
@@ -326,7 +326,7 @@ update msg model =
                     else
                         -0.1
             in
-            ( { model | scale = clamp 1 50 (model.scale * 2 ^ n) }, Cmd.none )
+            ( { model | scale = model.scale * 2 ^ n }, Cmd.none )
 
 
 
