@@ -243,7 +243,7 @@ update msg model =
 
         ImageDecoded value ->
             case
-                Image.decode value
+                D.decodeValue Image.decoder value
             of
                 Ok image ->
                     ( { model | image = image }
@@ -251,7 +251,11 @@ update msg model =
                     )
 
                 Err message ->
-                    ( { model | notifications = Notification Bulma.Danger message :: model.notifications }
+                    ( { model
+                        | notifications =
+                            Notification Bulma.Danger (D.errorToString message)
+                                :: model.notifications
+                      }
                     , Cmd.none
                     )
 

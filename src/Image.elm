@@ -1,4 +1,4 @@
-module Image exposing (Codel, Image, decode, empty, getCodels)
+module Image exposing (Codel, Image, decoder, empty, getCodels)
 
 import Json.Decode as D
 
@@ -60,33 +60,13 @@ pixelsFromIntegers width i list result =
             result
 
 
-decoder : D.Decoder (Result String ImageData)
+decoder : D.Decoder Image
 decoder =
-    D.oneOf
-        [ D.map Ok <|
-            D.map3 ImageData
-                (D.field "width" D.int)
-                (D.field "height" D.int)
-                (D.field "data" (D.list D.int))
-        , D.map Err D.string
-        ]
-
-
-decode : D.Value -> Result String Image
-decode =
-    D.decodeValue
-        decoder
-        >> flattenResult D.errorToString
-        >> Result.map imageFromImageData
-
-
-
--- MISC
-
-
-flattenResult : (x -> y) -> Result x (Result y a) -> Result y a
-flattenResult func =
-    Result.mapError func >> Result.andThen identity
+    D.map3 ImageData
+        (D.field "width" D.int)
+        (D.field "height" D.int)
+        (D.field "data" (D.list D.int))
+        |> D.map imageFromImageData
 
 
 
