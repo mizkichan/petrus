@@ -1,9 +1,13 @@
-port module Ports exposing (..)
+port module Ports exposing (decodeImage, imageDecoded)
 
-import Json.Encode as E
+import Json.Decode as D
 
 
 port decodeImage : String -> Cmd msg
 
 
-port imageDecoded : (E.Value -> msg) -> Sub msg
+port imageDecoded : (D.Value -> msg) -> Sub msg
+
+
+
+-- vim: set ts=4 sw=4 et:
