@@ -12,7 +12,7 @@ import Image exposing (Image)
 import Json.Decode as D
 import Octicons
 import Ports
-import Svg exposing (Svg, g, rect, svg)
+import Svg exposing (Attribute, Svg, g, rect, svg)
 import Svg.Attributes exposing (fill, height, transform, viewBox, width, x, y)
 import Task
 
@@ -67,6 +67,7 @@ type alias Model =
     , image : Image
     , isMouseDown : Bool
     , scale : Float
+    , offset : ( Float, Float )
     }
 
 
@@ -88,7 +89,7 @@ type Msg
     | DeleteNotification Int
     | MouseDown
     | MouseUp
-    | MouseMove ( Int, Int )
+    | MouseMove ( Float, Float )
     | Wheel Float
 
 
@@ -111,7 +112,8 @@ init flags =
       , notifications = notifications
       , image = Image.empty
       , isMouseDown = False
-      , scale = 1.0
+      , scale = 10.0
+      , offset = ( 0.0, 0.0 )
       }
     , Cmd.none
     )
@@ -132,7 +134,8 @@ view model =
         , Bulma.section []
             [ Bulma.container []
                 [ Bulma.columns []
-                    [ Bulma.column [] [ imageView model.scale model.image ]
+                    [ Bulma.column [] [ imageView { scale = model.scale, offset = model.offset } model.image ]
+                    , Bulma.column [] []
                     ]
                 ]
             ]
@@ -195,19 +198,20 @@ notificationsView notifications =
             ]
 
 
-imageView : Float -> Image -> Svg Msg
-imageView scale image =
+imageView : { scale : Float, offset : ( Float, Float ) } -> Image -> Svg Msg
+imageView options image =
     Bulma.box []
         [ svg
-            [ width "100%"
-            , height "100%"
-            , viewBox "0 0 50 50"
+            [ viewBox <| mapJoin String.fromFloat " " [ 0, 0, 50, 50 ]
             , onMouseDown MouseDown
             , onMouseUp MouseUp
             , onWheel Wheel
             ]
             [ g
-                [ transformScale scale
+                [ transforms
+                    [ scale options.scale
+                    , translate options.offset
+                    ]
                 ]
                 (image
                     |> Image.getCodels
@@ -225,9 +229,7 @@ codelView codel =
         , width "1"
         , height "1"
         , fill <|
-            "rgb("
-                ++ joinInt "," [ codel.r, codel.g, codel.b ]
-                ++ ")"
+            rgb ( codel.r, codel.g, codel.b )
         ]
         []
 
@@ -245,9 +247,32 @@ viewIf condition html =
 -- ATTRIBUTES
 
 
-transformScale : Float -> Svg.Attribute msg
-transformScale scale =
-    transform <| "scale(" ++ String.fromFloat scale ++ ")"
+transforms : List String -> Attribute msg
+transforms =
+    transform << String.join " "
+
+
+scale : Float -> String
+scale value =
+    "scale("
+        ++ String.fromFloat value
+        ++ ")"
+
+
+translate : ( Float, Float ) -> String
+translate ( x, y ) =
+    "translate("
+        ++ String.fromFloat x
+        ++ " "
+        ++ String.fromFloat y
+        ++ ")"
+
+
+rgb : ( Int, Int, Int ) -> String
+rgb ( r, g, b ) =
+    "rgb("
+        ++ mapJoin String.fromInt "," [ r, g, b ]
+        ++ ")"
 
 
 
@@ -314,8 +339,14 @@ update msg model =
             ( { model | isMouseDown = False }, Cmd.none )
 
         MouseMove ( dx, dy ) ->
-            {- TODO do something -}
-            ( model, Cmd.none )
+            ( { model
+                | offset =
+                    Tuple.mapBoth ((*) model.scale >> (+) dx)
+                        ((*) model.scale >> (+) dy)
+                        model.offset
+              }
+            , Cmd.none
+            )
 
         Wheel delta ->
             let
@@ -326,7 +357,7 @@ update msg model =
                     else
                         -0.1
             in
-            ( { model | scale = model.scale * 2 ^ n }, Cmd.none )
+            ( { model | scale = model.scale * e ^ n }, Cmd.none )
 
 
 
@@ -342,21 +373,21 @@ subscriptions model =
             ]
 
 
-movementDecoder : D.Decoder ( Int, Int )
+movementDecoder : D.Decoder ( Float, Float )
 movementDecoder =
     D.map2 Tuple.pair
-        (D.field "movementX" D.int)
-        (D.field "movementY" D.int)
+        (D.field "movementX" D.float)
+        (D.field "movementY" D.float)
 
 
 
 -- MISC
 
 
-joinInt : String -> List Int -> String
-joinInt separator =
+mapJoin : (a -> String) -> String -> List a -> String
+mapJoin func separator =
     String.join separator
-        << List.map String.fromInt
+        << List.map func
 
 
 justIf : Bool -> a -> Maybe a
