@@ -1,13 +1,15 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Browser.Events exposing (onMouseMove)
+import Browser.Dom as Dom
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, br, div, img, span, text)
-import Html.Attributes exposing (href, src, target)
-import Html.Events as Events exposing (onClick, onMouseDown, onMouseUp)
+import Html.Attributes exposing (href, id, src, target)
+import Html.Events exposing (onClick)
+import Html.Events.Extra.Mouse as Mouse
+import Html.Events.Extra.Wheel as Wheel
 import Image exposing (Image)
 import Json.Decode as D
 import Octicons
@@ -65,15 +67,32 @@ type alias Model =
     { flags : Flags
     , notifications : List Notification
     , image : Image
-    , isMouseDown : Bool
+    , mouseOperation : MouseOperation
     , scale : Float
     , offset : ( Float, Float )
+    , viewBox : ViewBox
     }
 
 
 type alias Notification =
     { color : Bulma.Color
     , message : String
+    }
+
+
+type MouseOperation
+    = NoOp
+    | Drag
+        { from : ( Float, Float )
+        , to : ( Float, Float )
+        }
+
+
+type alias ViewBox =
+    { x : Float
+    , y : Float
+    , width : Float
+    , height : Float
     }
 
 
@@ -87,10 +106,11 @@ type Msg
     | UrlEncoded String
     | ImageDecoded D.Value
     | DeleteNotification Int
-    | MouseDown
-    | MouseUp
-    | MouseMove ( Float, Float )
-    | Wheel Float
+    | MouseDown Mouse.Event
+    | MouseUp Mouse.Event
+    | MouseMove Mouse.Event
+    | Wheel Wheel.Event
+    | SetImageViewSize (Result Dom.Error Dom.Element)
 
 
 
@@ -111,11 +131,12 @@ init flags =
     ( { flags = decodedFlags
       , notifications = notifications
       , image = Image.empty
-      , isMouseDown = False
-      , scale = 10.0
+      , mouseOperation = NoOp
+      , scale = 1.0
       , offset = ( 0.0, 0.0 )
+      , viewBox = ViewBox 0.0 0.0 0.0 0.0
       }
-    , Cmd.none
+    , Dom.getElement "imageView" |> Task.attempt SetImageViewSize
     )
 
 
@@ -134,7 +155,14 @@ view model =
         , Bulma.section []
             [ Bulma.container []
                 [ Bulma.columns []
-                    [ Bulma.column [] [ imageView { scale = model.scale, offset = model.offset } model.image ]
+                    [ Bulma.column []
+                        [ imageView
+                            { scale = model.scale
+                            , offset = model.offset
+                            , viewBox = model.viewBox
+                            }
+                            model.image
+                        ]
                     , Bulma.column [] []
                     ]
                 ]
@@ -198,25 +226,31 @@ notificationsView notifications =
             ]
 
 
-imageView : { scale : Float, offset : ( Float, Float ) } -> Image -> Svg Msg
+imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
 imageView options image =
     Bulma.box []
-        [ svg
-            [ viewBox <| mapJoin String.fromFloat " " [ 0, 0, 50, 50 ]
-            , onMouseDown MouseDown
-            , onMouseUp MouseUp
-            , onWheel Wheel
-            ]
-            [ g
-                [ transforms
-                    [ scale options.scale
-                    , translate options.offset
-                    ]
+        [ div [ id "imageView" ]
+            [ svg
+                [ width <| String.fromFloat options.viewBox.width
+                , height <| String.fromFloat options.viewBox.height
+                , viewBox <| mapJoin String.fromFloat " " <| [ 0.0, 0.0, options.viewBox.width, options.viewBox.height ]
+                , Mouse.onDown MouseDown
+                , Mouse.onUp MouseUp
+                , Mouse.onMove MouseMove
+                , Wheel.onWheel Wheel
                 ]
-                (image
-                    |> Image.getCodels
-                    |> List.map codelView
-                )
+                [ g
+                    [ transforms
+                        [ translate ( options.viewBox.width / 2, options.viewBox.height / 2 )
+                        , scale options.scale
+                        , translate options.offset
+                        ]
+                    ]
+                    (image
+                        |> Image.getCodels
+                        |> List.map codelView
+                    )
+                ]
             ]
         ]
 
@@ -276,18 +310,6 @@ rgb ( r, g, b ) =
 
 
 
--- EVENTS
-
-
-onWheel : (Float -> msg) -> Html.Attribute msg
-onWheel msg =
-    Events.preventDefaultOn "wheel" <|
-        D.map
-            (msg >> Tuple.pair >> (|>) True)
-            (D.field "deltaY" D.float)
-
-
-
 -- UPDATE
 
 
@@ -332,32 +354,63 @@ update msg model =
             , Cmd.none
             )
 
-        MouseDown ->
-            ( { model | isMouseDown = True }, Cmd.none )
+        MouseDown { clientPos } ->
+            ( { model | mouseOperation = Drag { from = clientPos, to = clientPos } }, Cmd.none )
 
-        MouseUp ->
-            ( { model | isMouseDown = False }, Cmd.none )
+        MouseUp _ ->
+            ( { model | mouseOperation = NoOp }, Cmd.none )
 
-        MouseMove ( dx, dy ) ->
-            ( { model
-                | offset =
-                    Tuple.mapBoth ((*) model.scale >> (+) dx)
-                        ((*) model.scale >> (+) dy)
-                        model.offset
-              }
-            , Cmd.none
-            )
+        MouseMove { clientPos } ->
+            case model.mouseOperation of
+                NoOp ->
+                    ( model, Cmd.none )
 
-        Wheel delta ->
+                Drag { from, to } ->
+                    let
+                        ( xFrom, yFrom ) =
+                            from
+
+                        ( xTo, yTo ) =
+                            clientPos
+
+                        ( dx, dy ) =
+                            ( xTo - xFrom, yTo - yFrom )
+                    in
+                    ( { model
+                        | mouseOperation = Drag { from = to, to = clientPos }
+                        , offset =
+                            Tuple.mapBoth
+                                ((+) (dx / model.scale / 2))
+                                ((+) (dy / model.scale / 2))
+                                model.offset
+                      }
+                    , Cmd.none
+                    )
+
+        Wheel { deltaY } ->
             let
                 n =
-                    if delta < 0 then
+                    if deltaY < 0 then
                         0.1
 
                     else
                         -0.1
             in
             ( { model | scale = model.scale * e ^ n }, Cmd.none )
+
+        SetImageViewSize result ->
+            let
+                nextModel =
+                    case result of
+                        Ok { element } ->
+                            {- This is not a typo, viewBox should be a shape of square. -}
+                            { model | viewBox = ViewBox 0.0 0.0 element.width element.width }
+
+                        Err _ ->
+                            {- TODO handle error -}
+                            model
+            in
+            ( nextModel, Cmd.none )
 
 
 
@@ -366,18 +419,7 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch <|
-        List.filterMap identity <|
-            [ justIf model.isMouseDown (onMouseMove <| D.map MouseMove movementDecoder)
-            , Just <| Ports.imageDecoded ImageDecoded
-            ]
-
-
-movementDecoder : D.Decoder ( Float, Float )
-movementDecoder =
-    D.map2 Tuple.pair
-        (D.field "movementX" D.float)
-        (D.field "movementY" D.float)
+    Ports.imageDecoded ImageDecoded
 
 
 
@@ -388,15 +430,6 @@ mapJoin : (a -> String) -> String -> List a -> String
 mapJoin func separator =
     String.join separator
         << List.map func
-
-
-justIf : Bool -> a -> Maybe a
-justIf condition value =
-    if condition then
-        Just value
-
-    else
-        Nothing
 
 
 
