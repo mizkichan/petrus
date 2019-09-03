@@ -174,7 +174,13 @@ view model =
                             , viewBox = model.viewBox
                             }
                             model.image
-                        , Bulma.button [ onClick OpenButtonClicked ] [ text "Open" ]
+                        , Bulma.box []
+                            [ Bulma.buttons []
+                                [ Bulma.button [ onClick OpenButtonClicked ] [ text "Open" ]
+                                , Bulma.button [] [ text "Compile" ]
+                                , Bulma.button [] [ text "Run" ]
+                                ]
+                            ]
                         ]
                     , Bulma.column [] []
                     ]
