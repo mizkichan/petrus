@@ -14,8 +14,8 @@ import Image exposing (Image)
 import Json.Decode as D
 import Octicons
 import Ports
-import Svg exposing (Attribute, Svg, g, rect, svg)
-import Svg.Attributes exposing (fill, height, transform, viewBox, width, x, y)
+import Svg exposing (Attribute, Svg, g, path, rect, svg)
+import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
 import Task
 
 
@@ -38,22 +38,20 @@ main =
 
 
 type alias Flags =
-    { logoUrl : String
-    , repositoryUrl : String
+    { repositoryUrl : String
     , title : String
     }
 
 
 defaultFlags : Flags
 defaultFlags =
-    Flags "" "" ""
+    Flags "" ""
 
 
 decodeFlags : D.Value -> Result D.Error Flags
 decodeFlags =
     D.decodeValue
-        (D.map3 Flags
-            (D.field "logoUrl" D.string)
+        (D.map2 Flags
             (D.field "repositoryUrl" D.string)
             (D.field "title" D.string)
         )
@@ -147,10 +145,7 @@ init flags =
 view : Model -> Document Msg
 view model =
     Document model.flags.title
-        [ navbar
-            { logoUrl = model.flags.logoUrl
-            , repositoryUrl = model.flags.repositoryUrl
-            }
+        [ navbar { repositoryUrl = model.flags.repositoryUrl }
         , notificationsView model.notifications
         , Bulma.section []
             [ Bulma.container []
@@ -170,14 +165,14 @@ view model =
         ]
 
 
-navbar : { logoUrl : String, repositoryUrl : String } -> Html Msg
-navbar { logoUrl, repositoryUrl } =
+navbar : { repositoryUrl : String } -> Html Msg
+navbar { repositoryUrl } =
     Bulma.navbar []
         [ Bulma.container []
             [ Bulma.navbarBrand []
                 [ Bulma.navbarItem div
                     []
-                    [ img [ src logoUrl ] [] ]
+                    [ logo ]
                 ]
             , Bulma.navbarMenu []
                 [ Bulma.navbarStart []
@@ -204,6 +199,11 @@ navbar { logoUrl, repositoryUrl } =
                 ]
             ]
         ]
+
+
+logo : Svg msg
+logo =
+    svg [ height "24", viewBox "0 0 23 5" ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
 
 
 notificationsView : List Notification -> Html Msg
