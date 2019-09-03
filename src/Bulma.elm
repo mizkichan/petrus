@@ -1,4 +1,4 @@
-module Bulma exposing (Color(..), box, button, column, columns, container, delete, fromColor, icon, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, navbarStart, notification, section)
+module Bulma exposing (Color(..), box, button, column, columns, container, delete, fromColor, icon, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
 
 import Html exposing (Attribute, Html, div, nav, span)
 import Html.Attributes exposing (class)
@@ -66,11 +66,6 @@ navbarBrand =
 navbarMenu : E msg
 navbarMenu =
     builder div [ class "navbar-menu" ]
-
-
-navbarStart : E msg
-navbarStart =
-    builder div [ class "navbar-start" ]
 
 
 navbarEnd : E msg

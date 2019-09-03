@@ -157,6 +157,7 @@ view model =
                             , viewBox = model.viewBox
                             }
                             model.image
+                        , Bulma.button [ onClick OpenButtonClicked ] [ text "Open" ]
                         ]
                     , Bulma.column [] []
                     ]
@@ -175,14 +176,7 @@ navbar { repositoryUrl } =
                     [ logo ]
                 ]
             , Bulma.navbarMenu []
-                [ Bulma.navbarStart []
-                    [ Bulma.navbarItem div
-                        []
-                        [ Bulma.button [ onClick OpenButtonClicked ]
-                            [ text "Open" ]
-                        ]
-                    ]
-                , Bulma.navbarEnd []
+                [ Bulma.navbarEnd []
                     [ Bulma.navbarItem a
                         [ href "http://www.dangermouse.net/esoteric/piet.html"
                         , target "_blank"
@@ -208,22 +202,19 @@ logo =
 
 notificationsView : List Notification -> Html Msg
 notificationsView notifications =
-    viewIf (not <| List.isEmpty notifications) <|
-        Bulma.section []
-            [ Bulma.container [] <|
-                List.indexedMap
-                    (\i notification ->
-                        notification.message
-                            |> String.lines
-                            |> List.map String.trim
-                            |> List.filter (not << String.isEmpty)
-                            |> List.map text
-                            |> List.intersperse (br [] [])
-                            |> (::) (Bulma.delete [ onClick <| DeleteNotification i ] [])
-                            |> Bulma.notification [ Bulma.fromColor notification.color ]
-                    )
-                    notifications
-            ]
+    div [ class "notifications" ] <|
+        List.indexedMap
+            (\i notification ->
+                notification.message
+                    |> String.lines
+                    |> List.map String.trim
+                    |> List.filter (not << String.isEmpty)
+                    |> List.map text
+                    |> List.intersperse (br [] [])
+                    |> (::) (Bulma.delete [ onClick <| DeleteNotification i ] [])
+                    |> Bulma.notification [ Bulma.fromColor notification.color ]
+            )
+            notifications
 
 
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
@@ -267,15 +258,6 @@ codelView codel =
             rgb ( codel.r, codel.g, codel.b )
         ]
         []
-
-
-viewIf : Bool -> Html msg -> Html msg
-viewIf condition html =
-    if condition then
-        html
-
-    else
-        text ""
 
 
 
