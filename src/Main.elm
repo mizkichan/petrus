@@ -14,9 +14,10 @@ import Image exposing (Image)
 import Json.Decode as D
 import Octicons
 import Ports
+import Process
 import Svg exposing (Attribute, Svg, g, path, rect, svg)
 import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
-import Task
+import Task exposing (Task)
 
 
 
@@ -64,6 +65,7 @@ decodeFlags =
 type alias Model =
     { flags : Flags
     , notifications : List Notification
+    , lastNotificationId : Int
     , image : Image
     , mouseOperation : MouseOperation
     , scale : Float
@@ -73,7 +75,8 @@ type alias Model =
 
 
 type alias Notification =
-    { color : Bulma.Color
+    { id : Int
+    , color : Bulma.Color
     , message : String
     }
 
@@ -109,6 +112,7 @@ type Msg
     | MouseMove Mouse.Event
     | Wheel Wheel.Event
     | SetImageViewSize (Result Dom.Error Dom.Element)
+    | RemoveNotification Int
 
 
 
@@ -118,23 +122,36 @@ type Msg
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        ( decodedFlags, notifications ) =
+        hello =
+            Notification 0 Bulma.Info "Hello, world!"
+
+        ( decodedFlags, decodeError ) =
             case decodeFlags flags of
                 Ok decoded ->
-                    ( decoded, [ Notification Bulma.Info "Hello, world!" ] )
+                    ( decoded, [] )
 
                 Err error ->
-                    ( defaultFlags, [ Notification Bulma.Danger <| D.errorToString error ] )
+                    ( defaultFlags, [ Notification 1 Bulma.Danger <| D.errorToString error ] )
+
+        notifications =
+            hello :: decodeError
+
+        model =
+            { flags = decodedFlags
+            , notifications = notifications
+            , lastNotificationId = 1
+            , image = Image.empty
+            , mouseOperation = NoOp
+            , scale = 1.0
+            , offset = ( 0.0, 0.0 )
+            , viewBox = ViewBox 0.0 0.0 0.0 0.0
+            }
     in
-    ( { flags = decodedFlags
-      , notifications = notifications
-      , image = Image.empty
-      , mouseOperation = NoOp
-      , scale = 1.0
-      , offset = ( 0.0, 0.0 )
-      , viewBox = ViewBox 0.0 0.0 0.0 0.0
-      }
-    , Dom.getElement "imageView" |> Task.attempt SetImageViewSize
+    ( model
+    , Cmd.batch
+        [ Dom.getElement "imageView" |> Task.attempt SetImageViewSize
+        , Task.perform (always <| RemoveNotification 0) (Process.sleep 10000)
+        ]
     )
 
 
@@ -318,13 +335,7 @@ update msg model =
                     )
 
                 Err message ->
-                    ( { model
-                        | notifications =
-                            Notification Bulma.Danger (D.errorToString message)
-                                :: model.notifications
-                      }
-                    , Cmd.none
-                    )
+                    model |> addNotification Bulma.Danger (D.errorToString message)
 
         DeleteNotification i ->
             ( { model
@@ -394,6 +405,26 @@ update msg model =
                             model
             in
             ( nextModel, Cmd.none )
+
+        RemoveNotification id ->
+            ( { model | notifications = model.notifications |> List.filter (.id >> (/=) id) }, Cmd.none )
+
+
+addNotification : Bulma.Color -> String -> Model -> ( Model, Cmd Msg )
+addNotification color message model =
+    let
+        id =
+            model.lastNotificationId + 1
+
+        cmd =
+            Task.perform (always <| RemoveNotification id) (Process.sleep 10000)
+    in
+    ( { model
+        | lastNotificationId = id
+        , notifications = Notification id color message :: model.notifications
+      }
+    , Task.perform (always <| RemoveNotification id) (Process.sleep 10000)
+    )
 
 
 
