@@ -5,8 +5,8 @@ import Browser.Dom as Dom
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, a, br, div, img, span, text)
-import Html.Attributes exposing (href, id, src, target)
+import Html exposing (Html, a, br, div, span, text)
+import Html.Attributes exposing (class, href, id, target)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
@@ -229,7 +229,7 @@ notificationsView notifications =
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
 imageView options image =
     Bulma.box []
-        [ div [ id "imageView" ]
+        [ div [ id "imageView", class "has-background-grey" ]
             [ svg
                 [ width <| String.fromFloat options.viewBox.width
                 , height <| String.fromFloat options.viewBox.height
@@ -243,6 +243,7 @@ imageView options image =
                     [ transforms
                         [ translate ( options.viewBox.width / 2, options.viewBox.height / 2 )
                         , scale options.scale
+                        , translate ( -options.viewBox.width / 2, -options.viewBox.height / 2 )
                         , translate options.offset
                         ]
                     ]
