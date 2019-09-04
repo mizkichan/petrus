@@ -176,9 +176,12 @@ view model =
                             model.image
                         , Bulma.box []
                             [ Bulma.buttons []
-                                [ Bulma.button [ onClick OpenButtonClicked ] [ text "Open" ]
-                                , Bulma.button [] [ text "Compile" ]
-                                , Bulma.button [] [ text "Run" ]
+                                [ Bulma.button [ onClick OpenButtonClicked ]
+                                    |> iconText Octicons.fileMedia "Open"
+                                , Bulma.button []
+                                    |> iconText Octicons.circuitBoard "Build"
+                                , Bulma.button []
+                                    |> iconText Octicons.rocket "Run"
                                 ]
                             ]
                         ]
@@ -204,14 +207,11 @@ navbar { repositoryUrl } =
                         [ href "http://www.dangermouse.net/esoteric/piet.html"
                         , target "_blank"
                         ]
-                        [ span [] [ text "Piet language specification" ]
-                        , Bulma.icon [] [ Octicons.linkExternal Octicons.defaultOptions ]
+                        [ span []
+                            |> textIcon Octicons.linkExternal "Piet language specification"
                         ]
-                    , Bulma.navbarItem a
-                        [ href repositoryUrl ]
-                        [ Bulma.icon [] [ Octicons.markGithub Octicons.defaultOptions ]
-                        , span [] [ text "GitHub" ]
-                        ]
+                    , Bulma.navbarItem a [ href repositoryUrl ]
+                        |> iconText Octicons.markGithub "GitHub"
                     ]
                 ]
             ]
@@ -281,6 +281,22 @@ codelView codel =
             rgb ( codel.r, codel.g, codel.b )
         ]
         []
+
+
+textIcon : (Octicons.Options -> Html msg) -> String -> (List (Html msg) -> Html msg) -> Html msg
+textIcon icon string parent =
+    parent
+        [ span [] [ text string ]
+        , Bulma.icon [] [ icon Octicons.defaultOptions ]
+        ]
+
+
+iconText : (Octicons.Options -> Html msg) -> String -> (List (Html msg) -> Html msg) -> Html msg
+iconText icon string parent =
+    parent
+        [ Bulma.icon [] [ icon Octicons.defaultOptions ]
+        , span [] [ text string ]
+        ]
 
 
 
