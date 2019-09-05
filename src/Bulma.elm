@@ -1,4 +1,4 @@
-module Bulma exposing (Color(..), box, button, buttons, column, columns, container, delete, fromColor, icon, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
+module Bulma exposing (Color(..), box, button, buttons, column, columns, container, delete, hasBackground, icon, is, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
 
 import Html exposing (Attribute, Html, div, nav, span)
 import Html.Attributes exposing (class)
@@ -18,35 +18,96 @@ builder element attributes =
 
 
 type Color
-    = Primary
-    | Link
+    = White
+    | Black
+    | Light
+    | Dark
+    | Primary
     | Info
+    | Link
     | Success
     | Warning
     | Danger
+    | BlackBis
+    | BlackTer
+    | GreyDarker
+    | GreyDark
+    | Grey
+    | GreyLight
+    | GreyLighter
+    | WhiteTer
+    | WhiteBis
 
 
-fromColor : Color -> Attribute msg
-fromColor c =
-    class <|
-        case c of
-            Primary ->
-                "is-primary"
+colorToString : Color -> String
+colorToString color =
+    case color of
+        White ->
+            "white"
 
-            Link ->
-                "is-link"
+        Black ->
+            "black"
 
-            Info ->
-                "is-info"
+        Light ->
+            "light"
 
-            Success ->
-                "is-success"
+        Dark ->
+            "dark"
 
-            Warning ->
-                "is-warning"
+        Primary ->
+            "primary"
 
-            Danger ->
-                "is-danger"
+        Info ->
+            "info"
+
+        Link ->
+            "link"
+
+        Success ->
+            "success"
+
+        Warning ->
+            "warning"
+
+        Danger ->
+            "danger"
+
+        BlackBis ->
+            "black-bis"
+
+        BlackTer ->
+            "black-ter"
+
+        GreyDarker ->
+            "grey-darker"
+
+        GreyDark ->
+            "grey-dark"
+
+        Grey ->
+            "grey"
+
+        GreyLight ->
+            "grey-light"
+
+        GreyLighter ->
+            "grey-lighter"
+
+        WhiteTer ->
+            "white-ter"
+
+        WhiteBis ->
+            "white-bis"
+
+
+is : Color -> Attribute msg
+is color =
+    class <| "is-" ++ colorToString color
+
+
+hasBackground : Color -> Attribute msg
+hasBackground color =
+    class <| "has-background-" ++ colorToString color
 
 
 

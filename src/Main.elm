@@ -235,7 +235,7 @@ notificationsView notifications =
                     |> List.map text
                     |> List.intersperse (br [] [])
                     |> (::) (Bulma.delete [ onClick <| DeleteNotification i ] [])
-                    |> Bulma.notification [ Bulma.fromColor notification.color ]
+                    |> Bulma.notification [ Bulma.is notification.color ]
             )
             notifications
 
@@ -243,7 +243,7 @@ notificationsView notifications =
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
 imageView options image =
     Bulma.box []
-        [ div [ id "imageView", class "has-background-grey" ]
+        [ div [ id "imageView", Bulma.hasBackground Bulma.Grey ]
             [ svg
                 [ width <| String.fromFloat options.viewBox.width
                 , height <| String.fromFloat options.viewBox.height
