@@ -1,6 +1,6 @@
-module Bulma exposing (Color(..), box, button, buttons, column, columns, container, delete, hasBackground, icon, is, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
+module Bulma exposing (Modifier(..), box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, has, hasBackground, icon, input, is, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
 
-import Html exposing (Attribute, Html, div, nav, span)
+import Html exposing (Attribute, Html, div, span)
 import Html.Attributes exposing (class)
 
 
@@ -17,7 +17,7 @@ builder element attributes =
 -- TYPES AND UTILITIES
 
 
-type Color
+type Modifier
     = White
     | Black
     | Light
@@ -37,11 +37,16 @@ type Color
     | GreyLighter
     | WhiteTer
     | WhiteBis
+    | Active
+    | Name
+    | Hidden
+    | Horizontal
+    | Loading
 
 
-colorToString : Color -> String
-colorToString color =
-    case color of
+modifierToString : Modifier -> String
+modifierToString modifier =
+    case modifier of
         White ->
             "white"
 
@@ -99,15 +104,35 @@ colorToString color =
         WhiteBis ->
             "white-bis"
 
+        Active ->
+            "active"
 
-is : Color -> Attribute msg
-is color =
-    class <| "is-" ++ colorToString color
+        Name ->
+            "name"
+
+        Hidden ->
+            "hidden"
+
+        Horizontal ->
+            "horizontal"
+
+        Loading ->
+            "loading"
 
 
-hasBackground : Color -> Attribute msg
-hasBackground color =
-    class <| "has-background-" ++ colorToString color
+is : Modifier -> String
+is modifier =
+    "is-" ++ modifierToString modifier
+
+
+has : Modifier -> String
+has modifier =
+    "has-" ++ modifierToString modifier
+
+
+hasBackground : Modifier -> String
+hasBackground modifier =
+    "has-background-" ++ modifierToString modifier
 
 
 
@@ -116,7 +141,7 @@ hasBackground color =
 
 navbar : E msg
 navbar =
-    builder nav [ class "navbar" ]
+    builder div [ class "navbar" ]
 
 
 navbarBrand : E msg
@@ -193,6 +218,87 @@ section =
 buttons : E msg
 buttons =
     builder div [ class "buttons" ]
+
+
+modal : E msg
+modal =
+    builder div [ class "modal" ]
+
+
+modalBackground : E msg
+modalBackground =
+    builder div [ class "modal-background" ]
+
+
+modalContent : E msg
+modalContent =
+    builder div [ class "modal-content" ]
+
+
+modalClose : E msg
+modalClose =
+    builder Html.button [ class "modal-close" ]
+
+
+file : E msg
+file =
+    builder div [ class "file" ]
+
+
+fileLabel :
+    (List (Attribute msg) -> List (Html msg) -> Html msg)
+    -> List (Attribute msg)
+    -> List (Html msg)
+    -> Html msg
+fileLabel func attributes elements =
+    func
+        (class "file-label" :: attributes)
+        elements
+
+
+fileCta : E msg
+fileCta =
+    builder span [ class "file-cta" ]
+
+
+fileIcon : E msg
+fileIcon =
+    builder span [ class "file-icon" ]
+
+
+fileName : E msg
+fileName =
+    builder span [ class "file-name" ]
+
+
+field : E msg
+field =
+    builder div [ class "field" ]
+
+
+fieldLabel : E msg
+fieldLabel =
+    builder div [ class "field-label is-normal" ]
+
+
+fieldBody : E msg
+fieldBody =
+    builder div [ class "field-body" ]
+
+
+input : E msg
+input =
+    builder Html.input [ class "input" ]
+
+
+label : E msg
+label =
+    builder Html.label [ class "label" ]
+
+
+control : E msg
+control =
+    builder div [ class "control" ]
 
 
 

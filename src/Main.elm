@@ -5,8 +5,8 @@ import Browser.Dom as Dom
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, a, br, div, span, text)
-import Html.Attributes exposing (class, href, id, target)
+import Html exposing (Html, a, br, div, label, span, text)
+import Html.Attributes exposing (class, classList, href, id, target, type_, value)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
@@ -17,7 +17,7 @@ import Ports
 import Process
 import Svg exposing (Attribute, Svg, g, path, rect, svg)
 import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
-import Task exposing (Task)
+import Task
 
 
 
@@ -71,12 +71,13 @@ type alias Model =
     , scale : Float
     , offset : ( Float, Float )
     , viewBox : ViewBox
+    , modal : ModalModel
     }
 
 
 type alias Notification =
     { id : Int
-    , color : Bulma.Color
+    , color : Bulma.Modifier
     , message : String
     }
 
@@ -97,13 +98,22 @@ type alias ViewBox =
     }
 
 
+type alias ModalModel =
+    { isActive : Bool
+    , file : Maybe File
+    , codelSize : Int
+    , isDecoding : Bool
+    }
+
+
 
 -- MSG
 
 
 type Msg
-    = OpenButtonClicked
+    = OpenFileDialog
     | FileSelected File
+    | OpenFile File
     | UrlEncoded String
     | ImageDecoded D.Value
     | DeleteNotification Int
@@ -113,6 +123,8 @@ type Msg
     | Wheel Wheel.Event
     | SetImageViewSize (Result Dom.Error Dom.Element)
     | RemoveNotification Int
+    | ActivateModal
+    | DeactivateModal
 
 
 
@@ -145,6 +157,12 @@ init flags =
             , scale = 1.0
             , offset = ( 0.0, 0.0 )
             , viewBox = ViewBox 0.0 0.0 0.0 0.0
+            , modal =
+                { isActive = False
+                , file = Nothing
+                , codelSize = 1
+                , isDecoding = False
+                }
             }
     in
     ( model
@@ -168,27 +186,25 @@ view model =
             [ Bulma.container []
                 [ Bulma.columns []
                     [ Bulma.column []
-                        [ imageView
+                        [ Bulma.box []
+                            [ Bulma.buttons []
+                                [ Bulma.button [ onClick ActivateModal ] <| iconText Octicons.fileMedia "Open"
+                                , Bulma.button [] <| iconText Octicons.circuitBoard "Build"
+                                , Bulma.button [] <| iconText Octicons.rocket "Run"
+                                ]
+                            ]
+                        , imageView
                             { scale = model.scale
                             , offset = model.offset
                             , viewBox = model.viewBox
                             }
                             model.image
-                        , Bulma.box []
-                            [ Bulma.buttons []
-                                [ Bulma.button [ onClick OpenButtonClicked ]
-                                    |> iconText Octicons.fileMedia "Open"
-                                , Bulma.button []
-                                    |> iconText Octicons.circuitBoard "Build"
-                                , Bulma.button []
-                                    |> iconText Octicons.rocket "Run"
-                                ]
-                            ]
                         ]
                     , Bulma.column [] []
                     ]
                 ]
             ]
+        , fileModalView model.modal
         ]
 
 
@@ -207,11 +223,11 @@ navbar { repositoryUrl } =
                         [ href "http://www.dangermouse.net/esoteric/piet.html"
                         , target "_blank"
                         ]
-                        [ span []
-                            |> textIcon Octicons.linkExternal "Piet language specification"
+                        [ span [] <|
+                            textIcon Octicons.linkExternal "Piet language specification"
                         ]
-                    , Bulma.navbarItem a [ href repositoryUrl ]
-                        |> iconText Octicons.markGithub "GitHub"
+                    , Bulma.navbarItem a [ href repositoryUrl ] <|
+                        iconText Octicons.markGithub "GitHub"
                     ]
                 ]
             ]
@@ -226,16 +242,16 @@ logo =
 notificationsView : List Notification -> Html Msg
 notificationsView notifications =
     div [ class "notifications" ] <|
-        List.indexedMap
-            (\i notification ->
+        List.map
+            (\notification ->
                 notification.message
                     |> String.lines
                     |> List.map String.trim
                     |> List.filter (not << String.isEmpty)
                     |> List.map text
                     |> List.intersperse (br [] [])
-                    |> (::) (Bulma.delete [ onClick <| DeleteNotification i ] [])
-                    |> Bulma.notification [ Bulma.is notification.color ]
+                    |> (::) (Bulma.delete [ onClick <| DeleteNotification notification.id ] [])
+                    |> Bulma.notification [ class <| Bulma.is notification.color ]
             )
             notifications
 
@@ -243,7 +259,7 @@ notificationsView notifications =
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
 imageView options image =
     Bulma.box []
-        [ div [ id "imageView", Bulma.hasBackground Bulma.Grey ]
+        [ div [ id "imageView", class <| Bulma.hasBackground Bulma.Grey ]
             [ svg
                 [ width <| String.fromFloat options.viewBox.width
                 , height <| String.fromFloat options.viewBox.height
@@ -283,20 +299,62 @@ codelView codel =
         []
 
 
-textIcon : (Octicons.Options -> Html msg) -> String -> (List (Html msg) -> Html msg) -> Html msg
-textIcon icon string parent =
-    parent
-        [ span [] [ text string ]
-        , Bulma.icon [] [ icon Octicons.defaultOptions ]
+fileModalView : ModalModel -> Html Msg
+fileModalView options =
+    Bulma.modal [ classList [ ( Bulma.is Bulma.Active, options.isActive ) ] ]
+        [ Bulma.modalBackground [ onClick DeactivateModal ] []
+        , Bulma.modalContent []
+            [ Bulma.box []
+                [ Bulma.field []
+                    [ Bulma.file [ classList [ ( Bulma.has Bulma.Name, options.file /= Nothing ) ] ]
+                        [ Bulma.fileLabel label
+                            []
+                            [ Bulma.fileCta [ onClick OpenFileDialog ]
+                                [ Bulma.fileIcon [] [ Octicons.fileMedia Octicons.defaultOptions ]
+                                , Bulma.fileLabel span [] [ text "Choose a file..." ]
+                                ]
+                            , options.file
+                                |> Maybe.map (File.name >> text >> List.singleton >> Bulma.fileName [])
+                                |> Maybe.withDefault (text "")
+                            ]
+                        ]
+                    ]
+                , Bulma.field [ class <| Bulma.is Bulma.Horizontal ]
+                    [ Bulma.fieldLabel [] [ Bulma.label [] [ text "Codel Size" ] ]
+                    , Bulma.fieldBody [] [ Bulma.field [] [ Bulma.control [] [ Bulma.input [ type_ "number", value <| String.fromInt options.codelSize ] [] ] ] ]
+                    ]
+                , Bulma.buttons []
+                    [ options.file
+                        |> Maybe.map
+                            (OpenFile
+                                >> onClick
+                                >> List.singleton
+                                >> (::) (class <| Bulma.is Bulma.Primary)
+                                >> (::) (classList [ ( Bulma.is Bulma.Loading, options.isDecoding ) ])
+                                >> Bulma.button
+                                >> (|>) [ text "Open" ]
+                            )
+                        |> Maybe.withDefault (text "")
+                    , Bulma.button [ onClick DeactivateModal ] [ text "Cancel" ]
+                    ]
+                ]
+            ]
+        , Bulma.modalClose [ onClick DeactivateModal ] []
         ]
 
 
-iconText : (Octicons.Options -> Html msg) -> String -> (List (Html msg) -> Html msg) -> Html msg
-iconText icon string parent =
-    parent
-        [ Bulma.icon [] [ icon Octicons.defaultOptions ]
-        , span [] [ text string ]
-        ]
+textIcon : (Octicons.Options -> Html msg) -> String -> List (Html msg)
+textIcon icon string =
+    [ span [] [ text string ]
+    , Bulma.icon [] [ icon Octicons.defaultOptions ]
+    ]
+
+
+iconText : (Octicons.Options -> Html msg) -> String -> List (Html msg)
+iconText icon string =
+    [ Bulma.icon [] [ icon Octicons.defaultOptions ]
+    , span [] [ text string ]
+    ]
 
 
 
@@ -338,11 +396,22 @@ rgb ( r, g, b ) =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        OpenButtonClicked ->
+        OpenFileDialog ->
             ( model, file [ "image/*" ] FileSelected )
 
         FileSelected file ->
-            ( model, Task.perform UrlEncoded <| File.toUrl file )
+            let
+                modal =
+                    model.modal
+            in
+            ( { model | modal = { modal | file = Just file } }, Cmd.none )
+
+        OpenFile file ->
+            let
+                modal =
+                    model.modal
+            in
+            ( { model | modal = { modal | isDecoding = True } }, Task.perform UrlEncoded <| File.toUrl file )
 
         UrlEncoded url ->
             ( model, Ports.decodeImage url )
@@ -352,23 +421,19 @@ update msg model =
                 D.decodeValue Image.decoder value
             of
                 Ok image ->
-                    ( { model | image = image }
+                    let
+                        modal =
+                            model.modal
+                    in
+                    ( { model | image = image, modal = { modal | isDecoding = False, isActive = False } }
                     , Cmd.none
                     )
 
                 Err message ->
                     model |> addNotification Bulma.Danger (D.errorToString message)
 
-        DeleteNotification i ->
-            ( { model
-                | notifications =
-                    List.concat
-                        [ List.take i model.notifications
-                        , List.drop (i + 1) model.notifications
-                        ]
-              }
-            , Cmd.none
-            )
+        DeleteNotification id ->
+            ( { model | notifications = List.filter (.id >> (/=) id) model.notifications }, Cmd.none )
 
         MouseDown { clientPos } ->
             ( { model | mouseOperation = Drag { from = clientPos, to = clientPos } }, Cmd.none )
@@ -431,8 +496,22 @@ update msg model =
         RemoveNotification id ->
             ( { model | notifications = model.notifications |> List.filter (.id >> (/=) id) }, Cmd.none )
 
+        ActivateModal ->
+            let
+                modal =
+                    model.modal
+            in
+            ( { model | modal = { modal | isActive = True } }, Cmd.none )
 
-addNotification : Bulma.Color -> String -> Model -> ( Model, Cmd Msg )
+        DeactivateModal ->
+            let
+                modal =
+                    model.modal
+            in
+            ( { model | modal = { modal | isActive = False } }, Cmd.none )
+
+
+addNotification : Bulma.Modifier -> String -> Model -> ( Model, Cmd Msg )
 addNotification color message model =
     let
         id =
