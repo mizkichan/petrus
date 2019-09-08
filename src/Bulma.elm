@@ -1,4 +1,4 @@
-module Bulma exposing (Modifier(..), box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, has, hasBackground, icon, input, is, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
+module Bulma exposing (box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, hasBackgroundGrey, hasName, icon, input, isActive, isDanger, isHorizontal, isInfo, isLoading, isPrimary, isSuccess, isWarning, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
 
 import Html exposing (Attribute, Html, div, span)
 import Html.Attributes exposing (class)
@@ -11,128 +11,6 @@ type alias E msg =
 builder : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> E msg
 builder element attributes =
     element << List.append attributes
-
-
-
--- TYPES AND UTILITIES
-
-
-type Modifier
-    = White
-    | Black
-    | Light
-    | Dark
-    | Primary
-    | Info
-    | Link
-    | Success
-    | Warning
-    | Danger
-    | BlackBis
-    | BlackTer
-    | GreyDarker
-    | GreyDark
-    | Grey
-    | GreyLight
-    | GreyLighter
-    | WhiteTer
-    | WhiteBis
-    | Active
-    | Name
-    | Hidden
-    | Horizontal
-    | Loading
-
-
-modifierToString : Modifier -> String
-modifierToString modifier =
-    case modifier of
-        White ->
-            "white"
-
-        Black ->
-            "black"
-
-        Light ->
-            "light"
-
-        Dark ->
-            "dark"
-
-        Primary ->
-            "primary"
-
-        Info ->
-            "info"
-
-        Link ->
-            "link"
-
-        Success ->
-            "success"
-
-        Warning ->
-            "warning"
-
-        Danger ->
-            "danger"
-
-        BlackBis ->
-            "black-bis"
-
-        BlackTer ->
-            "black-ter"
-
-        GreyDarker ->
-            "grey-darker"
-
-        GreyDark ->
-            "grey-dark"
-
-        Grey ->
-            "grey"
-
-        GreyLight ->
-            "grey-light"
-
-        GreyLighter ->
-            "grey-lighter"
-
-        WhiteTer ->
-            "white-ter"
-
-        WhiteBis ->
-            "white-bis"
-
-        Active ->
-            "active"
-
-        Name ->
-            "name"
-
-        Hidden ->
-            "hidden"
-
-        Horizontal ->
-            "horizontal"
-
-        Loading ->
-            "loading"
-
-
-is : Modifier -> String
-is modifier =
-    "is-" ++ modifierToString modifier
-
-
-has : Modifier -> String
-has modifier =
-    "has-" ++ modifierToString modifier
-
-
-hasBackground : Modifier -> String
-hasBackground modifier =
-    "has-background-" ++ modifierToString modifier
 
 
 
@@ -299,6 +177,60 @@ label =
 control : E msg
 control =
     builder div [ class "control" ]
+
+
+
+-- ATTRIBUTES
+
+
+isActive : String
+isActive =
+    "is-active"
+
+
+isHorizontal : String
+isHorizontal =
+    "is-horizontal"
+
+
+isPrimary : String
+isPrimary =
+    "is-primary"
+
+
+isSuccess : String
+isSuccess =
+    "is-success"
+
+
+isInfo : String
+isInfo =
+    "is-info"
+
+
+isWarning : String
+isWarning =
+    "is-warning"
+
+
+isDanger : String
+isDanger =
+    "is-danger"
+
+
+isLoading : String
+isLoading =
+    "is-loading"
+
+
+hasName : String
+hasName =
+    "has-name"
+
+
+hasBackgroundGrey : String
+hasBackgroundGrey =
+    "has-background-grey"
 
 
 

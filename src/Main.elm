@@ -77,9 +77,16 @@ type alias Model =
 
 type alias Notification =
     { id : Int
-    , color : Bulma.Modifier
+    , color : Priority
     , message : String
     }
+
+
+type Priority
+    = Success
+    | Info
+    | Warning
+    | Danger
 
 
 type MouseOperation
@@ -134,24 +141,18 @@ type Msg
 init : D.Value -> ( Model, Cmd Msg )
 init flags =
     let
-        hello =
-            Notification 0 Bulma.Info "Hello, world!"
-
         ( decodedFlags, decodeError ) =
             case decodeFlags flags of
                 Ok decoded ->
-                    ( decoded, [] )
+                    ( decoded, Nothing )
 
                 Err error ->
-                    ( defaultFlags, [ Notification 1 Bulma.Danger <| D.errorToString error ] )
-
-        notifications =
-            hello :: decodeError
+                    ( defaultFlags, Just error )
 
         model =
             { flags = decodedFlags
-            , notifications = notifications
-            , lastNotificationId = 1
+            , notifications = []
+            , lastNotificationId = 0
             , image = Image.empty
             , mouseOperation = NoOp
             , scale = 1.0
@@ -171,6 +172,11 @@ init flags =
         , Task.perform (always <| RemoveNotification 0) (Process.sleep 10000)
         ]
     )
+        |> mapModelCmd
+            (decodeError
+                |> Maybe.map (addNotification Danger << D.errorToString)
+                |> Maybe.withDefault (addNotification Info "Hello, world!")
+            )
 
 
 
@@ -251,15 +257,31 @@ notificationsView notifications =
                     |> List.map text
                     |> List.intersperse (br [] [])
                     |> (::) (Bulma.delete [ onClick <| DeleteNotification notification.id ] [])
-                    |> Bulma.notification [ class <| Bulma.is notification.color ]
+                    |> Bulma.notification [ class <| priorityToClassName notification.color ]
             )
             notifications
+
+
+priorityToClassName : Priority -> String
+priorityToClassName priority =
+    case priority of
+        Success ->
+            Bulma.isSuccess
+
+        Info ->
+            Bulma.isInfo
+
+        Warning ->
+            Bulma.isWarning
+
+        Danger ->
+            Bulma.isDanger
 
 
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
 imageView options image =
     Bulma.box []
-        [ div [ id "imageView", class <| Bulma.hasBackground Bulma.Grey ]
+        [ div [ id "imageView", class <| Bulma.hasBackgroundGrey ]
             [ svg
                 [ width <| String.fromFloat options.viewBox.width
                 , height <| String.fromFloat options.viewBox.height
@@ -301,12 +323,12 @@ codelView codel =
 
 fileModalView : ModalModel -> Html Msg
 fileModalView options =
-    Bulma.modal [ classList [ ( Bulma.is Bulma.Active, options.isActive ) ] ]
+    Bulma.modal [ classList [ ( Bulma.isActive, options.isActive ) ] ]
         [ Bulma.modalBackground [ onClick DeactivateModal ] []
         , Bulma.modalContent []
             [ Bulma.box []
                 [ Bulma.field []
-                    [ Bulma.file [ classList [ ( Bulma.has Bulma.Name, options.file /= Nothing ) ] ]
+                    [ Bulma.file [ classList [ ( Bulma.hasName, options.file /= Nothing ) ] ]
                         [ Bulma.fileLabel label
                             []
                             [ Bulma.fileCta [ onClick OpenFileDialog ]
@@ -319,7 +341,7 @@ fileModalView options =
                             ]
                         ]
                     ]
-                , Bulma.field [ class <| Bulma.is Bulma.Horizontal ]
+                , Bulma.field [ class <| Bulma.isHorizontal ]
                     [ Bulma.fieldLabel [] [ Bulma.label [] [ text "Codel Size" ] ]
                     , Bulma.fieldBody [] [ Bulma.field [] [ Bulma.control [] [ Bulma.input [ type_ "number", value <| String.fromInt options.codelSize ] [] ] ] ]
                     ]
@@ -329,8 +351,8 @@ fileModalView options =
                             (OpenFile
                                 >> onClick
                                 >> List.singleton
-                                >> (::) (class <| Bulma.is Bulma.Primary)
-                                >> (::) (classList [ ( Bulma.is Bulma.Loading, options.isDecoding ) ])
+                                >> (::) (class <| Bulma.isPrimary)
+                                >> (::) (classList [ ( Bulma.isLoading, options.isDecoding ) ])
                                 >> Bulma.button
                                 >> (|>) [ text "Open" ]
                             )
@@ -397,21 +419,13 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         OpenFileDialog ->
-            ( model, file [ "image/*" ] FileSelected )
+            ( model, openFileDialog )
 
         FileSelected file ->
-            let
-                modal =
-                    model.modal
-            in
-            ( { model | modal = { modal | file = Just file } }, Cmd.none )
+            ( { model | modal = setFile file model.modal }, Cmd.none )
 
         OpenFile file ->
-            let
-                modal =
-                    model.modal
-            in
-            ( { model | modal = { modal | isDecoding = True } }, Task.perform UrlEncoded <| File.toUrl file )
+            ( { model | modal = setDecoding model.modal }, Task.perform UrlEncoded <| File.toUrl file )
 
         UrlEncoded url ->
             ( model, Ports.decodeImage url )
@@ -421,16 +435,10 @@ update msg model =
                 D.decodeValue Image.decoder value
             of
                 Ok image ->
-                    let
-                        modal =
-                            model.modal
-                    in
-                    ( { model | image = image, modal = { modal | isDecoding = False, isActive = False } }
-                    , Cmd.none
-                    )
+                    ( { model | image = image, modal = model.modal |> deactivateModal |> unsetDecoding }, Cmd.none )
 
                 Err message ->
-                    model |> addNotification Bulma.Danger (D.errorToString message)
+                    model |> addNotification Danger (D.errorToString message)
 
         DeleteNotification id ->
             ( { model | notifications = List.filter (.id >> (/=) id) model.notifications }, Cmd.none )
@@ -481,37 +489,30 @@ update msg model =
 
         SetImageViewSize result ->
             let
-                nextModel =
-                    case result of
-                        Ok { element } ->
-                            {- This is not a typo, viewBox should be a shape of square. -}
-                            { model | viewBox = ViewBox 0.0 0.0 element.width element.width }
-
-                        Err _ ->
-                            {- TODO handle error -}
-                            model
+                size =
+                    result
+                        |> Result.map (.element >> .width)
+                        -- TODO handle error
+                        |> Result.withDefault 0.0
             in
-            ( nextModel, Cmd.none )
+            ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
 
         RemoveNotification id ->
             ( { model | notifications = model.notifications |> List.filter (.id >> (/=) id) }, Cmd.none )
 
         ActivateModal ->
-            let
-                modal =
-                    model.modal
-            in
-            ( { model | modal = { modal | isActive = True } }, Cmd.none )
+            ( { model | modal = activateModal model.modal }, openFileDialog )
 
         DeactivateModal ->
-            let
-                modal =
-                    model.modal
-            in
-            ( { model | modal = { modal | isActive = False } }, Cmd.none )
+            ( { model | modal = deactivateModal model.modal }, Cmd.none )
 
 
-addNotification : Bulma.Modifier -> String -> Model -> ( Model, Cmd Msg )
+openFileDialog : Cmd Msg
+openFileDialog =
+    file [ "image/*" ] FileSelected
+
+
+addNotification : Priority -> String -> Model -> ( Model, Cmd Msg )
 addNotification color message model =
     let
         id =
@@ -526,6 +527,40 @@ addNotification color message model =
       }
     , Task.perform (always <| RemoveNotification id) (Process.sleep 10000)
     )
+
+
+activateModal : ModalModel -> ModalModel
+activateModal modal =
+    { modal | isActive = True }
+
+
+deactivateModal : ModalModel -> ModalModel
+deactivateModal modal =
+    { modal | isActive = False }
+
+
+setFile : File -> ModalModel -> ModalModel
+setFile file modal =
+    { modal | file = Just file }
+
+
+setDecoding : ModalModel -> ModalModel
+setDecoding modal =
+    { modal | isDecoding = True }
+
+
+unsetDecoding : ModalModel -> ModalModel
+unsetDecoding modal =
+    { modal | isDecoding = False }
+
+
+mapModelCmd : (model -> ( model, Cmd msg )) -> ( model, Cmd msg ) -> ( model, Cmd msg )
+mapModelCmd func ( model, cmd ) =
+    let
+        ( newModel, newCmd ) =
+            func model
+    in
+    ( newModel, Cmd.batch [ cmd, newCmd ] )
 
 
 
