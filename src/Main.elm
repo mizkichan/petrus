@@ -5,8 +5,8 @@ import Browser.Dom as Dom
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, a, div, label, span, text)
-import Html.Attributes exposing (class, classList, href, id, target, type_, value)
+import Html exposing (Html, a, div, fieldset, label, span, text)
+import Html.Attributes exposing (class, classList, disabled, href, id, target, type_, value)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
@@ -281,37 +281,48 @@ fileModalView options =
         [ Bulma.modalBackground [ onClick DeactivateModal ] []
         , Bulma.modalContent []
             [ Bulma.box []
-                [ Bulma.field []
-                    [ Bulma.file [ classList [ ( Bulma.hasName, options.file /= Nothing ) ] ]
-                        [ Bulma.fileLabel label
-                            []
-                            [ Bulma.fileCta [ onClick OpenFileDialog ]
-                                [ Bulma.fileIcon [] [ Octicons.fileMedia Octicons.defaultOptions ]
-                                , Bulma.fileLabel span [] [ text "Choose a file..." ]
+                [ fieldset [ disabled <| options.isDecoding ]
+                    [ Bulma.field []
+                        [ Bulma.file [ classList [ ( Bulma.hasName, options.file /= Nothing ) ] ]
+                            [ Bulma.fileLabel label
+                                []
+                                [ Bulma.fileCta [ onClick OpenFileDialog ]
+                                    [ Bulma.fileIcon [] [ Octicons.fileMedia Octicons.defaultOptions ]
+                                    , Bulma.fileLabel span [] [ text "Choose a file..." ]
+                                    ]
+                                , options.file
+                                    |> Maybe.map (File.name >> text >> List.singleton >> Bulma.fileName [])
+                                    |> Maybe.withDefault (text "")
                                 ]
-                            , options.file
-                                |> Maybe.map (File.name >> text >> List.singleton >> Bulma.fileName [])
-                                |> Maybe.withDefault (text "")
                             ]
                         ]
-                    ]
-                , Bulma.field [ class <| Bulma.isHorizontal ]
-                    [ Bulma.fieldLabel [] [ Bulma.label [] [ text "Codel Size" ] ]
-                    , Bulma.fieldBody [] [ Bulma.field [] [ Bulma.control [] [ Bulma.input [ type_ "number", value <| String.fromInt options.codelSize ] [] ] ] ]
-                    ]
-                , Bulma.buttons []
-                    [ options.file
-                        |> Maybe.map
-                            (OpenFile
-                                >> onClick
-                                >> List.singleton
-                                >> (::) (class <| Bulma.isPrimary)
-                                >> (::) (classList [ ( Bulma.isLoading, options.isDecoding ) ])
-                                >> Bulma.button
-                                >> (|>) [ text "Open" ]
-                            )
-                        |> Maybe.withDefault (text "")
-                    , Bulma.button [ onClick DeactivateModal ] [ text "Cancel" ]
+                    , Bulma.field [ class <| Bulma.isHorizontal ]
+                        [ Bulma.fieldLabel [] [ Bulma.label [] [ text "Codel Size" ] ]
+                        , Bulma.fieldBody []
+                            [ Bulma.field []
+                                [ Bulma.control []
+                                    [ Bulma.input
+                                        [ type_ "number"
+                                        , value <| String.fromInt options.codelSize
+                                        ]
+                                        []
+                                    ]
+                                ]
+                            ]
+                        ]
+                    , Bulma.buttons []
+                        [ Bulma.button
+                            [ classList
+                                [ ( Bulma.isPrimary, True )
+                                , ( Bulma.isLoading, options.isDecoding )
+                                ]
+                            , options.file
+                                |> Maybe.map (onClick << OpenFile)
+                                |> Maybe.withDefault (disabled True)
+                            ]
+                            [ text "Open" ]
+                        , Bulma.button [ onClick DeactivateModal ] [ text "Cancel" ]
+                        ]
                     ]
                 ]
             ]

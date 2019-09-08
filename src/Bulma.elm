@@ -50,7 +50,7 @@ navbarItem func attributes elements =
 
 button : E msg
 button =
-    builder div [ class "button" ]
+    builder Html.button [ class "button" ]
 
 
 notification : E msg
