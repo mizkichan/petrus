@@ -217,9 +217,8 @@ navbar { repositoryUrl } =
                         [ href "http://www.dangermouse.net/esoteric/piet.html"
                         , target "_blank"
                         ]
-                        [ span [] <|
-                            textIcon Octicons.linkExternal "Piet language specification"
-                        ]
+                      <|
+                        textIcon Octicons.linkExternal "Piet language specification"
                     , Bulma.navbarItem a [ href repositoryUrl ] <|
                         iconText Octicons.markGithub "GitHub"
                     ]

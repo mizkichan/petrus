@@ -63,7 +63,7 @@ pixelsFromImageData imageData codelSize i result =
 
                 skip =
                     if x == width - 1 then
-                        codelSize * imageData.width * 4
+                        (codelSize - 1) * (imageData.width + 1) * 4
 
                     else
                         (codelSize - 1) * 4
