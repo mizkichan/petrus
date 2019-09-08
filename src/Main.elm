@@ -5,16 +5,16 @@ import Browser.Dom as Dom
 import Bulma
 import File exposing (File)
 import File.Select exposing (file)
-import Html exposing (Html, a, br, div, label, span, text)
+import Html exposing (Html, a, div, label, span, text)
 import Html.Attributes exposing (class, classList, href, id, target, type_, value)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
 import Image exposing (Image)
 import Json.Decode as D
+import Notification
 import Octicons
 import Ports
-import Process
 import Svg exposing (Attribute, Svg, g, path, rect, svg)
 import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
 import Task
@@ -64,7 +64,7 @@ decodeFlags =
 
 type alias Model =
     { flags : Flags
-    , notifications : List Notification
+    , notifications : Notification.Manager
     , lastNotificationId : Int
     , image : Image
     , mouseOperation : MouseOperation
@@ -73,20 +73,6 @@ type alias Model =
     , viewBox : ViewBox
     , modal : ModalModel
     }
-
-
-type alias Notification =
-    { id : Int
-    , color : Priority
-    , message : String
-    }
-
-
-type Priority
-    = Success
-    | Info
-    | Warning
-    | Danger
 
 
 type MouseOperation
@@ -123,7 +109,6 @@ type Msg
     | OpenFile File
     | UrlEncoded String
     | ImageDecoded D.Value
-    | DeleteNotification Int
     | MouseDown Mouse.Event
     | MouseUp Mouse.Event
     | MouseMove Mouse.Event
@@ -149,9 +134,16 @@ init flags =
                 Err error ->
                     ( defaultFlags, Just error )
 
+        ( notifications, cmd ) =
+            Notification.empty
+                |> (decodeError
+                        |> Maybe.map (D.errorToString >> Notification.add RemoveNotification Notification.Danger)
+                        |> Maybe.withDefault (Notification.add RemoveNotification Notification.Info "Hello, world!")
+                   )
+
         model =
             { flags = decodedFlags
-            , notifications = []
+            , notifications = notifications
             , lastNotificationId = 0
             , image = Image.empty
             , mouseOperation = NoOp
@@ -169,14 +161,9 @@ init flags =
     ( model
     , Cmd.batch
         [ Dom.getElement "imageView" |> Task.attempt SetImageViewSize
-        , Task.perform (always <| RemoveNotification 0) (Process.sleep 10000)
+        , cmd
         ]
     )
-        |> mapModelCmd
-            (decodeError
-                |> Maybe.map (addNotification Danger << D.errorToString)
-                |> Maybe.withDefault (addNotification Info "Hello, world!")
-            )
 
 
 
@@ -187,7 +174,7 @@ view : Model -> Document Msg
 view model =
     Document model.flags.title
         [ navbar { repositoryUrl = model.flags.repositoryUrl }
-        , notificationsView model.notifications
+        , Notification.view RemoveNotification model.notifications
         , Bulma.section []
             [ Bulma.container []
                 [ Bulma.columns []
@@ -243,39 +230,6 @@ navbar { repositoryUrl } =
 logo : Svg msg
 logo =
     svg [ height "24", viewBox "0 0 23 5" ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
-
-
-notificationsView : List Notification -> Html Msg
-notificationsView notifications =
-    div [ class "notifications" ] <|
-        List.map
-            (\notification ->
-                notification.message
-                    |> String.lines
-                    |> List.map String.trim
-                    |> List.filter (not << String.isEmpty)
-                    |> List.map text
-                    |> List.intersperse (br [] [])
-                    |> (::) (Bulma.delete [ onClick <| DeleteNotification notification.id ] [])
-                    |> Bulma.notification [ class <| priorityToClassName notification.color ]
-            )
-            notifications
-
-
-priorityToClassName : Priority -> String
-priorityToClassName priority =
-    case priority of
-        Success ->
-            Bulma.isSuccess
-
-        Info ->
-            Bulma.isInfo
-
-        Warning ->
-            Bulma.isWarning
-
-        Danger ->
-            Bulma.isDanger
 
 
 imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
@@ -438,10 +392,11 @@ update msg model =
                     ( { model | image = image, modal = model.modal |> deactivateModal |> unsetDecoding }, Cmd.none )
 
                 Err message ->
-                    model |> addNotification Danger (D.errorToString message)
-
-        DeleteNotification id ->
-            ( { model | notifications = List.filter (.id >> (/=) id) model.notifications }, Cmd.none )
+                    let
+                        ( notifications, cmd ) =
+                            Notification.add RemoveNotification Notification.Danger (D.errorToString message) model.notifications
+                    in
+                    ( { model | notifications = notifications }, cmd )
 
         MouseDown { clientPos } ->
             ( { model | mouseOperation = Drag { from = clientPos, to = clientPos } }, Cmd.none )
@@ -498,7 +453,7 @@ update msg model =
             ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
 
         RemoveNotification id ->
-            ( { model | notifications = model.notifications |> List.filter (.id >> (/=) id) }, Cmd.none )
+            ( { model | notifications = Notification.remove id model.notifications }, Cmd.none )
 
         ActivateModal ->
             ( { model | modal = activateModal model.modal }, openFileDialog )
@@ -510,23 +465,6 @@ update msg model =
 openFileDialog : Cmd Msg
 openFileDialog =
     file [ "image/*" ] FileSelected
-
-
-addNotification : Priority -> String -> Model -> ( Model, Cmd Msg )
-addNotification color message model =
-    let
-        id =
-            model.lastNotificationId + 1
-
-        cmd =
-            Task.perform (always <| RemoveNotification id) (Process.sleep 10000)
-    in
-    ( { model
-        | lastNotificationId = id
-        , notifications = Notification id color message :: model.notifications
-      }
-    , Task.perform (always <| RemoveNotification id) (Process.sleep 10000)
-    )
 
 
 activateModal : ModalModel -> ModalModel
@@ -552,15 +490,6 @@ setDecoding modal =
 unsetDecoding : ModalModel -> ModalModel
 unsetDecoding modal =
     { modal | isDecoding = False }
-
-
-mapModelCmd : (model -> ( model, Cmd msg )) -> ( model, Cmd msg ) -> ( model, Cmd msg )
-mapModelCmd func ( model, cmd ) =
-    let
-        ( newModel, newCmd ) =
-            func model
-    in
-    ( newModel, Cmd.batch [ cmd, newCmd ] )
 
 
 
