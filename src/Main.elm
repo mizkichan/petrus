@@ -7,7 +7,7 @@ import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
 import Html.Attributes exposing (class, classList, disabled, href, id, target, type_, value)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra.Mouse as Mouse
 import Html.Events.Extra.Wheel as Wheel
 import Image exposing (Image)
@@ -117,6 +117,7 @@ type Msg
     | RemoveNotification Int
     | ActivateModal
     | DeactivateModal
+    | SetCodelSize String
 
 
 
@@ -304,6 +305,7 @@ fileModalView options =
                                     [ Bulma.input
                                         [ type_ "number"
                                         , value <| String.fromInt options.codelSize
+                                        , onInput <| SetCodelSize
                                         ]
                                         []
                                     ]
@@ -396,9 +398,7 @@ update msg model =
             ( model, Ports.decodeImage url )
 
         ImageDecoded value ->
-            case
-                D.decodeValue Image.decoder value
-            of
+            case D.decodeValue (Image.decoder model.modal.codelSize) value of
                 Ok image ->
                     ( { model | image = image, modal = model.modal |> deactivateModal |> unsetDecoding }, Cmd.none )
 
@@ -472,6 +472,14 @@ update msg model =
         DeactivateModal ->
             ( { model | modal = deactivateModal model.modal }, Cmd.none )
 
+        SetCodelSize value ->
+            case String.toInt value of
+                Just codelSize ->
+                    ( { model | modal = setCodelSize codelSize model.modal }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
 
 openFileDialog : Cmd Msg
 openFileDialog =
@@ -501,6 +509,11 @@ setDecoding modal =
 unsetDecoding : ModalModel -> ModalModel
 unsetDecoding modal =
     { modal | isDecoding = False }
+
+
+setCodelSize : Int -> ModalModel -> ModalModel
+setCodelSize codelSize modal =
+    { modal | codelSize = codelSize }
 
 
 

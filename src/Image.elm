@@ -42,31 +42,52 @@ empty =
 -- DECODER
 
 
-imageFromImageData : ImageData -> Image
-imageFromImageData { width, height, data } =
-    Image <| pixelsFromIntegers width 0 data []
+imageFromImageData : Int -> ImageData -> Image
+imageFromImageData codelSize imageData =
+    Image <| pixelsFromImageData imageData codelSize 0 []
 
 
-pixelsFromIntegers : Int -> Int -> List Int -> List Pixel -> List Pixel
-pixelsFromIntegers width i list result =
-    case list of
+pixelsFromImageData : ImageData -> Int -> Int -> List Pixel -> List Pixel
+pixelsFromImageData imageData codelSize i result =
+    case imageData.data of
         r :: g :: b :: _ :: rest ->
-            pixelsFromIntegers width
+            let
+                width =
+                    imageData.width // codelSize
+
+                x =
+                    modBy width i
+
+                y =
+                    i // width
+
+                skip =
+                    if x == width - 1 then
+                        codelSize * imageData.width * 4
+
+                    else
+                        (codelSize - 1) * 4
+
+                next =
+                    List.drop skip rest
+            in
+            pixelsFromImageData
+                { imageData | data = next }
+                codelSize
                 (i + 1)
-                rest
-                (Pixel (modBy width i) (i // width) r g b :: result)
+                (Pixel x y r g b :: result)
 
         _ ->
             result
 
 
-decoder : D.Decoder Image
-decoder =
+decoder : Int -> D.Decoder Image
+decoder codelSize =
     D.map3 ImageData
         (D.field "width" D.int)
         (D.field "height" D.int)
         (D.field "data" (D.list D.int))
-        |> D.map imageFromImageData
+        |> D.map (imageFromImageData codelSize)
 
 
 
