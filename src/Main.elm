@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document)
 import Browser.Dom as Dom
 import Bulma
+import Color exposing (Color)
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
@@ -14,6 +15,7 @@ import Image exposing (Image)
 import Json.Decode as D
 import Notification
 import Octicons
+import Point exposing (Point)
 import Ports
 import Svg exposing (Attribute, Svg, g, path, rect, svg)
 import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
@@ -114,6 +116,7 @@ type Msg
     | MouseMove Mouse.Event
     | Wheel Wheel.Event
     | SetImageViewSize (Result Dom.Error Dom.Element)
+    | AddNotification Notification.Priority String
     | RemoveNotification Int
     | ActivateModal
     | DeactivateModal
@@ -254,23 +257,27 @@ imageView options image =
                         ]
                     ]
                     (image
-                        |> Image.getCodels
-                        |> List.map codelView
+                        |> Image.getColorBlocks
+                        |> List.map colorBlockView
                     )
                 ]
             ]
         ]
 
 
-codelView : Image.Codel -> Svg msg
-codelView codel =
+colorBlockView : Image.ColorBlock -> Svg msg
+colorBlockView colorBlock =
+    g [] <| List.map (codelView colorBlock.color) colorBlock.codels
+
+
+codelView : Color -> Point -> Svg msg
+codelView color point =
     rect
-        [ x <| String.fromInt <| codel.x
-        , y <| String.fromInt <| codel.y
+        [ x <| String.fromInt <| point.x
+        , y <| String.fromInt <| point.y
         , width "1"
         , height "1"
-        , fill <|
-            rgb ( codel.r, codel.g, codel.b )
+        , fill <| Color.toString color
         ]
         []
 
@@ -455,12 +462,21 @@ update msg model =
         SetImageViewSize result ->
             let
                 size =
-                    result
-                        |> Result.map (.element >> .width)
-                        -- TODO handle error
-                        |> Result.withDefault 0.0
+                    case result of
+                        Ok value ->
+                            value.element.width
+
+                        Err (Dom.NotFound error) ->
+                            Debug.todo ("handle error: " ++ error)
             in
             ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
+
+        AddNotification priority message ->
+            let
+                ( notifications, cmd ) =
+                    Notification.add RemoveNotification priority message model.notifications
+            in
+            ( { model | notifications = notifications }, cmd )
 
         RemoveNotification id ->
             ( { model | notifications = Notification.remove id model.notifications }, Cmd.none )
@@ -521,7 +537,10 @@ setCodelSize codelSize modal =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Ports.imageDecoded ImageDecoded
+    Sub.batch
+        [ Ports.imageDecoded ImageDecoded
+        , Ports.error <| AddNotification Notification.Danger
+        ]
 
 
 

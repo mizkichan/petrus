@@ -3,6 +3,7 @@
 .notifications {
   position: fixed;
   right: $block-spacing;
+  z-index: $modal-z + 1;
 }
 
 /* vim: set ts=2 sw=2 et: */
