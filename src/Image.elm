@@ -2,6 +2,7 @@ module Image exposing (Codel, ColorBlock, Image, decoder, empty, getColorBlocks)
 
 import Color exposing (Color, Rgb)
 import Json.Decode as D
+import List.Extra as List
 import Point exposing (Point)
 
 
@@ -97,24 +98,59 @@ colorBlocksFromCodels : List Codel -> List ColorBlock
 colorBlocksFromCodels codels =
     codels
         |> Debug.todo "this won't work"
-        |> List.gatherWith (\a b -> Point.distance a.point b.point <= 1 && a.rgb == b.rgb)
+        |> partitionCodels
         |> List.map
-            (\( repr, codels_ ) ->
+            (\( color, points ) ->
                 let
-                    color =
-                        Color.fromRgb repr.rgb
-
                     area =
-                        List.length codels_
-
-                    points =
-                        List.map .point codels_
+                        List.length points
 
                     table =
                         generateTable points
                 in
                 ColorBlock color area points table
             )
+
+
+partitionCodels : List Codel -> List ( Color, List Point )
+partitionCodels codels =
+    let
+        helper : List Codel -> List ( Color, List Point ) -> List ( Color, List Point )
+        helper codels_ result =
+            case codels_ of
+                head :: tail ->
+                    let
+                        nextResult =
+                            if result |> List.any (isMemberOf head) then
+                                result |> List.map (updatePair head)
+
+                            else
+                                newPair (Color.fromRgb head.rgb) head.point :: result
+                    in
+                    helper tail nextResult
+
+                [] ->
+                    result
+
+        isMemberOf : Codel -> ( Color, List Point ) -> Bool
+        isMemberOf codel ( color, points ) =
+            (&&)
+                (color == Color.fromRgb codel.rgb)
+                (List.any ((==) 1 << Point.distance codel.point) points)
+
+        updatePair : Codel -> ( Color, List Point ) -> ( Color, List Point )
+        updatePair codel ( color, points ) =
+            if isMemberOf codel ( color, points ) then
+                ( color, codel.point :: points )
+
+            else
+                ( color, points )
+
+        newPair : Color -> Point -> ( Color, List Point )
+        newPair color point =
+            ( color, [ point ] )
+    in
+    helper codels []
 
 
 generateTable : List Point -> Table
