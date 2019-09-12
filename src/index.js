@@ -8,14 +8,9 @@ const app = Elm.Main.init({
   }
 });
 
-const send = (portName, object) => {
-  try {
-    app.ports[portName].send(object);
-  } catch (e) {
-    app.ports.error.send(e.toString());
-    throw e;
-  }
-};
+window.addEventListener("error", ev => {
+  app.ports.error.send(ev.error.toString());
+});
 
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d");
@@ -28,11 +23,7 @@ image.addEventListener("load", () => {
   context.drawImage(image, 0, 0, width, height);
   const imageData = context.getImageData(0, 0, width, height);
   const data = Array.from(imageData.data);
-  send("imageDecoded", { width, height, data });
-});
-
-image.addEventListener("error", err => {
-  app.ports.imageDecoded.send(err.message);
+  app.ports.imageDecoded.send({ width, height, data });
 });
 
 app.ports.decodeImage.subscribe(uri => {
