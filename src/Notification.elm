@@ -70,19 +70,20 @@ remove id manager =
 
 view : (Int -> msg) -> Manager -> Html msg
 view onRemove manager =
+    let
+        helper : Notification -> Html msg
+        helper notification =
+            notification.message
+                |> String.lines
+                |> List.map String.trim
+                |> List.filter (not << String.isEmpty)
+                |> List.map text
+                |> List.intersperse (br [] [])
+                |> (::) (Bulma.delete [ onClick <| onRemove notification.id ] [])
+                |> Bulma.notification [ class <| priorityToClassName notification.priority ]
+    in
     div [ class "notifications" ] <|
-        List.map
-            (\notification ->
-                notification.message
-                    |> String.lines
-                    |> List.map String.trim
-                    |> List.filter (not << String.isEmpty)
-                    |> List.map text
-                    |> List.intersperse (br [] [])
-                    |> (::) (Bulma.delete [ onClick <| onRemove notification.id ] [])
-                    |> Bulma.notification [ class <| priorityToClassName notification.priority ]
-            )
-            manager.notifications
+        List.map helper manager.notifications
 
 
 priorityToClassName : Priority -> String

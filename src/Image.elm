@@ -96,20 +96,15 @@ imageFromImageData codelSize initialImageData =
 
 colorBlocksFromCodels : List Codel -> List ColorBlock
 colorBlocksFromCodels codels =
+    let
+        helper : ( Color, List Point ) -> ColorBlock
+        helper ( color, points ) =
+            ColorBlock color (List.length points) points (generateTable points)
+    in
     codels
         |> Debug.todo "this won't work"
         |> partitionCodels
-        |> List.map
-            (\( color, points ) ->
-                let
-                    area =
-                        List.length points
-
-                    table =
-                        generateTable points
-                in
-                ColorBlock color area points table
-            )
+        |> List.map helper
 
 
 partitionCodels : List Codel -> List ( Color, List Point )
