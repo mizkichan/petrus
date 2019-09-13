@@ -8,7 +8,7 @@
   "scripts": {
     "start": "parcel serve src/index.html",
     "prebuild": "npm run clean",
-    "build": "parcel build -- --public-url . --no-source-maps src/index.html",
+    "build": "parcel build --public-url . --no-source-maps src/index.html",
     "clean": "rimraf dist",
     "prepublish": "npm run build",
     "publish": "gh-pages -d dist"

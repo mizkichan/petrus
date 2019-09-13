@@ -460,16 +460,20 @@ update msg model =
             ( { model | scale = model.scale * e ^ n }, Cmd.none )
 
         SetImageViewSize result ->
-            let
-                size =
-                    case result of
-                        Ok value ->
+            case result of
+                Ok value ->
+                    let
+                        size =
                             value.element.width
+                    in
+                    ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
 
-                        Err (Dom.NotFound error) ->
-                            Debug.todo ("handle error: " ++ error)
-            in
-            ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
+                Err (Dom.NotFound error) ->
+                    let
+                        ( notifications, cmd ) =
+                            Notification.add RemoveNotification Notification.Danger error model.notifications
+                    in
+                    ( { model | notifications = notifications }, cmd )
 
         AddNotification priority message ->
             let
