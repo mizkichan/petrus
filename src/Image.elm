@@ -102,7 +102,6 @@ colorBlocksFromCodels codels =
             ColorBlock color (List.length points) points (generateTable points)
     in
     codels
-        |> Debug.todo "this won't work"
         |> partitionCodels
         |> List.map helper
 
@@ -110,8 +109,8 @@ colorBlocksFromCodels codels =
 partitionCodels : List Codel -> List ( Color, List Point )
 partitionCodels codels =
     let
-        helper : List Codel -> List ( Color, List Point ) -> List ( Color, List Point )
-        helper codels_ result =
+        gather : List Codel -> List ( Color, List Point ) -> List ( Color, List Point )
+        gather codels_ result =
             case codels_ of
                 head :: tail ->
                     let
@@ -122,16 +121,15 @@ partitionCodels codels =
                             else
                                 newPair (Color.fromRgb head.rgb) head.point :: result
                     in
-                    helper tail nextResult
+                    gather tail nextResult
 
                 [] ->
                     result
 
         isMemberOf : Codel -> ( Color, List Point ) -> Bool
         isMemberOf codel ( color, points ) =
-            (&&)
-                (color == Color.fromRgb codel.rgb)
-                (List.any ((==) 1 << Point.distance codel.point) points)
+            (color == Color.fromRgb codel.rgb)
+                && List.any ((==) 1 << Point.distance codel.point) points
 
         updatePair : Codel -> ( Color, List Point ) -> ( Color, List Point )
         updatePair codel ( color, points ) =
@@ -144,8 +142,34 @@ partitionCodels codels =
         newPair : Color -> Point -> ( Color, List Point )
         newPair color point =
             ( color, [ point ] )
+
+        merge : List ( Color, List Point ) -> List ( Color, List Point )
+        merge pairs =
+            let
+                hoge : ( ( Color, List Point ), List ( Color, List Point ) ) -> ( Color, List Point )
+                hoge ( ( color, points ), pairs_ ) =
+                    ( color, List.foldl fuga [] (( color, points ) :: pairs_) )
+
+                fuga : ( Color, List Point ) -> List Point -> List Point
+                fuga ( _, points ) result =
+                    result ++ points
+            in
+            pairs
+                |> List.gatherWith isToBeMergedWith
+                |> List.map hoge
+
+        isToBeMergedWith : ( Color, List Point ) -> ( Color, List Point ) -> Bool
+        isToBeMergedWith ( colorA, pointsA ) ( colorB, pointsB ) =
+            (colorA == colorB)
+                && (product pointsA pointsB
+                        |> List.any (\( pa, pb ) -> Point.distance pa pb == 1)
+                   )
+
+        product : List a -> List b -> List ( a, b )
+        product xs ys =
+            List.concatMap (\x -> List.map (\y -> ( x, y )) ys) xs
     in
-    helper codels []
+    gather codels [] |> merge
 
 
 generateTable : List Point -> Table
