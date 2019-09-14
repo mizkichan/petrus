@@ -19,7 +19,7 @@ type alias ImageData =
 
 type alias Codel =
     { point : Point
-    , rgb : Rgb
+    , color : Color
     }
 
 
@@ -84,7 +84,7 @@ imageFromImageData codelSize initialImageData =
                     helper
                         { imageData | data = List.drop skip rest }
                         (i + 1)
-                        (Codel (Point x y) (Rgb r g b) :: result)
+                        (Codel (Point x y) (Color.fromRgb <| Rgb r g b) :: result)
 
                 _ ->
                     result
@@ -119,7 +119,7 @@ partitionCodels codels =
                                 result |> List.map (updatePair head)
 
                             else
-                                newPair (Color.fromRgb head.rgb) head.point :: result
+                                newPair head.color head.point :: result
                     in
                     gather tail nextResult
 
@@ -128,7 +128,7 @@ partitionCodels codels =
 
         isMemberOf : Codel -> ( Color, List Point ) -> Bool
         isMemberOf codel ( color, points ) =
-            (color == Color.fromRgb codel.rgb)
+            (color == codel.color)
                 && List.any ((==) 1 << Point.distance codel.point) points
 
         updatePair : Codel -> ( Color, List Point ) -> ( Color, List Point )
