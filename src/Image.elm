@@ -25,7 +25,6 @@ type alias Codel =
 
 type alias ColorBlock =
     { color : Color
-    , area : Int
     , codels : List Point
     , table : Table
     }
@@ -41,6 +40,10 @@ type alias Table =
     , ul : Point
     , ur : Point
     }
+
+
+type alias NonEmptyList a =
+    ( a, List a )
 
 
 getColorBlocks : Image -> List ColorBlock
@@ -97,79 +100,61 @@ imageFromImageData codelSize initialImageData =
 colorBlocksFromCodels : List Codel -> List ColorBlock
 colorBlocksFromCodels codels =
     let
-        helper : ( Color, List Point ) -> ColorBlock
-        helper ( color, points ) =
-            ColorBlock color (List.length points) points (generateTable points)
+        init : Codel -> NonEmptyList Codel
+        init codel =
+            ( codel, [] )
+
+        helper : List (NonEmptyList Codel) -> List (NonEmptyList Codel)
+        helper blocks =
+            let
+                gatherer : NonEmptyList Codel -> NonEmptyList Codel -> Bool
+                gatherer ( x, xs ) ( y, ys ) =
+                    let
+                        hasSameColor =
+                            x.color == y.color
+
+                        isAdjacent =
+                            let
+                                ps =
+                                    List.map .point (x :: xs)
+
+                                qs =
+                                    List.map .point (y :: ys)
+                            in
+                            ps
+                                |> List.any
+                                    (\p -> qs |> List.any (\q -> Point.distance p q == 1))
+                    in
+                    hasSameColor && isAdjacent
+
+                merge : NonEmptyList (NonEmptyList Codel) -> NonEmptyList Codel
+                merge ( ( x, xs ), xss ) =
+                    let
+                        tail =
+                            List.concatMap toList xss
+
+                        toList ( h, t ) =
+                            h :: t
+                    in
+                    ( x, List.append xs tail )
+            in
+            blocks
+                |> List.gatherWith gatherer
+                |> List.map merge
+                |> Debug.todo "loop"
+
+        finalize : NonEmptyList Codel -> ColorBlock
+        finalize ( head, tail ) =
+            let
+                points =
+                    List.map .point <| head :: tail
+            in
+            ColorBlock head.color points <| generateTable points
     in
     codels
-        |> partitionCodels
-        |> List.map helper
-
-
-partitionCodels : List Codel -> List ( Color, List Point )
-partitionCodels codels =
-    let
-        gather : List Codel -> List ( Color, List Point ) -> List ( Color, List Point )
-        gather codels_ result =
-            case codels_ of
-                head :: tail ->
-                    let
-                        nextResult =
-                            if result |> List.any (isMemberOf head) then
-                                result |> List.map (updatePair head)
-
-                            else
-                                newPair head.color head.point :: result
-                    in
-                    gather tail nextResult
-
-                [] ->
-                    result
-
-        isMemberOf : Codel -> ( Color, List Point ) -> Bool
-        isMemberOf codel ( color, points ) =
-            (color == codel.color)
-                && List.any ((==) 1 << Point.distance codel.point) points
-
-        updatePair : Codel -> ( Color, List Point ) -> ( Color, List Point )
-        updatePair codel ( color, points ) =
-            if isMemberOf codel ( color, points ) then
-                ( color, codel.point :: points )
-
-            else
-                ( color, points )
-
-        newPair : Color -> Point -> ( Color, List Point )
-        newPair color point =
-            ( color, [ point ] )
-
-        merge : List ( Color, List Point ) -> List ( Color, List Point )
-        merge pairs =
-            let
-                hoge : ( ( Color, List Point ), List ( Color, List Point ) ) -> ( Color, List Point )
-                hoge ( ( color, points ), pairs_ ) =
-                    ( color, List.foldl fuga [] (( color, points ) :: pairs_) )
-
-                fuga : ( Color, List Point ) -> List Point -> List Point
-                fuga ( _, points ) result =
-                    result ++ points
-            in
-            pairs
-                |> List.gatherWith isToBeMergedWith
-                |> List.map hoge
-
-        isToBeMergedWith : ( Color, List Point ) -> ( Color, List Point ) -> Bool
-        isToBeMergedWith ( colorA, pointsA ) ( colorB, pointsB ) =
-            (colorA == colorB)
-                && (product pointsA pointsB
-                        |> List.any (\( pa, pb ) -> Point.distance pa pb == 1)
-                   )
-
-        product : List a -> List b -> List ( a, b )
-        product xs ys =
-            List.concatMap (\x -> List.map (\y -> ( x, y )) ys) xs
-    in
-    gather codels [] |> merge
+        |> List.map init
+        |> helper
+        |> List.map finalize
 
 
 generateTable : List Point -> Table
