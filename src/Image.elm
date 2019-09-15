@@ -107,13 +107,24 @@ colorBlocksFromCodels codels =
         helper : List (NonEmptyList Codel) -> List (NonEmptyList Codel)
         helper blocks =
             let
+                gather : List (NonEmptyList Codel) -> ( Bool, List (NonEmptyList (NonEmptyList Codel)) )
+                gather blocks_ =
+                    let
+                        gathered =
+                            List.gatherWith gatherer blocks_
+
+                        isChanged =
+                            List.length blocks_ == List.length gathered
+                    in
+                    ( isChanged, gathered )
+
                 gatherer : NonEmptyList Codel -> NonEmptyList Codel -> Bool
                 gatherer ( x, xs ) ( y, ys ) =
                     let
                         hasSameColor =
                             x.color == y.color
 
-                        isAdjacent =
+                        hasAdjacentCodel =
                             let
                                 ps =
                                     List.map .point (x :: xs)
@@ -121,11 +132,9 @@ colorBlocksFromCodels codels =
                                 qs =
                                     List.map .point (y :: ys)
                             in
-                            ps
-                                |> List.any
-                                    (\p -> qs |> List.any (\q -> Point.distance p q == 1))
+                            ps |> List.any (\p -> qs |> List.any (\q -> Point.distance p q == 1))
                     in
-                    hasSameColor && isAdjacent
+                    hasSameColor && hasAdjacentCodel
 
                 merge : NonEmptyList (NonEmptyList Codel) -> NonEmptyList Codel
                 merge ( ( x, xs ), xss ) =
@@ -139,8 +148,8 @@ colorBlocksFromCodels codels =
                     ( x, List.append xs tail )
             in
             blocks
-                |> List.gatherWith gatherer
-                |> List.map merge
+                |> gather
+                |> Tuple.mapSecond (List.map merge)
                 |> Debug.todo "loop"
 
         finalize : NonEmptyList Codel -> ColorBlock
