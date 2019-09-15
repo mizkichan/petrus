@@ -107,16 +107,17 @@ colorBlocksFromCodels codels =
         helper : List (NonEmptyList Codel) -> List (NonEmptyList Codel)
         helper blocks =
             let
-                gather : List (NonEmptyList Codel) -> ( Bool, List (NonEmptyList (NonEmptyList Codel)) )
+                gather : List (NonEmptyList Codel) -> Maybe (List (NonEmptyList (NonEmptyList Codel)))
                 gather blocks_ =
                     let
                         gathered =
                             List.gatherWith gatherer blocks_
-
-                        isChanged =
-                            List.length blocks_ == List.length gathered
                     in
-                    ( isChanged, gathered )
+                    if List.length blocks_ /= List.length gathered then
+                        Just gathered
+
+                    else
+                        Nothing
 
                 gatherer : NonEmptyList Codel -> NonEmptyList Codel -> Bool
                 gatherer ( x, xs ) ( y, ys ) =
@@ -149,8 +150,8 @@ colorBlocksFromCodels codels =
             in
             blocks
                 |> gather
-                |> Tuple.mapSecond (List.map merge)
-                |> Debug.todo "loop"
+                |> Maybe.map (List.map merge >> helper)
+                |> Maybe.withDefault blocks
 
         finalize : NonEmptyList Codel -> ColorBlock
         finalize ( head, tail ) =
