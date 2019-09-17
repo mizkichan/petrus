@@ -7,15 +7,15 @@ import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
 import Html.Attributes exposing (class, classList, disabled, href, target, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onClick, onInput, onMouseEnter)
 import Image exposing (Image)
 import Json.Decode as D
 import Notification
 import Octicons
 import Point exposing (Point)
 import Ports
-import Svg exposing (Attribute, Svg, g, path, rect, svg)
-import Svg.Attributes exposing (d, fill, height, transform, viewBox, width, x, y)
+import Svg exposing (Svg, g, path, rect, svg)
+import Svg.Attributes exposing (d, fill, height, stroke, strokeWidth, transform, viewBox, width, x, y)
 import Task
 
 
@@ -67,6 +67,7 @@ type alias Model =
     , lastNotificationId : Int
     , image : Image
     , modal : ModalModel
+    , highlightedColorBlockId : Maybe Int
     }
 
 
@@ -93,6 +94,7 @@ type Msg
     | ActivateModal
     | DeactivateModal
     | SetCodelSize String
+    | HighlightColorBlock Int
 
 
 
@@ -128,6 +130,7 @@ init flags =
                 , codelSize = 1
                 , isDecoding = False
                 }
+            , highlightedColorBlockId = Nothing
             }
     in
     ( model, cmd )
@@ -153,7 +156,10 @@ view model =
                                 , Bulma.button [] <| iconText Octicons.rocket "Run"
                                 ]
                             ]
-                        , imageView model.image
+                        , imageView
+                            { image = model.image
+                            , highlightedColorBlockId = model.highlightedColorBlockId
+                            }
                         ]
                     , Bulma.column [] []
                     ]
@@ -189,26 +195,34 @@ logo =
     svg [ height "24", viewBox "0 0 23 5" ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
 
 
-imageView : Image -> Svg Msg
-imageView image =
+imageView : { image : Image, highlightedColorBlockId : Maybe Int } -> Svg Msg
+imageView { image, highlightedColorBlockId } =
     Bulma.box []
         [ svg
             [ Svg.Attributes.class <| Bulma.isBlock
             , viewBox <| mapJoin String.fromInt " " [ 0, 0, image.width, image.height ]
             ]
-            [ g
-                []
-                (image
-                    |> .colorBlocks
-                    |> List.map colorBlockView
-                )
-            ]
+            [ g [] (List.indexedMap (colorBlockView highlightedColorBlockId) image.colorBlocks) ]
         ]
 
 
-colorBlockView : Image.ColorBlock -> Svg msg
-colorBlockView { codels, color } =
-    g [] <| List.map (codelView color) codels
+colorBlockView : Maybe Int -> Int -> Image.ColorBlock -> Svg Msg
+colorBlockView highlightedColorBlockId i { codels, color } =
+    let
+        strokeValue =
+            if highlightedColorBlockId == Just i then
+                "white"
+
+            else
+                "grey"
+    in
+    g
+        [ onMouseEnter <| HighlightColorBlock i
+        , stroke strokeValue
+        , strokeWidth "0.1"
+        ]
+    <|
+        List.map (codelView color) codels
 
 
 codelView : Color -> Point -> Svg msg
@@ -297,7 +311,7 @@ iconText icon string =
 -- ATTRIBUTES
 
 
-transforms : List String -> Attribute msg
+transforms : List String -> Svg.Attribute msg
 transforms =
     transform << String.join " "
 
@@ -377,6 +391,9 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        HighlightColorBlock i ->
+            ( { model | highlightedColorBlockId = Just i }, Cmd.none )
 
 
 openFileDialog : Cmd Msg
