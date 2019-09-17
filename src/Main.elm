@@ -209,11 +209,7 @@ navbar : { repositoryUrl : String } -> Html Msg
 navbar { repositoryUrl } =
     Bulma.navbar []
         [ Bulma.container []
-            [ Bulma.navbarBrand []
-                [ Bulma.navbarItem div
-                    []
-                    [ logo ]
-                ]
+            [ Bulma.navbarBrand [] [ Bulma.navbarItem div [] [ logo ] ]
             , Bulma.navbarMenu []
                 [ Bulma.navbarEnd []
                     [ Bulma.navbarItem a
@@ -266,8 +262,8 @@ imageView options image =
 
 
 colorBlockView : Image.ColorBlock -> Svg msg
-colorBlockView colorBlock =
-    g [] <| List.map (codelView colorBlock.color) colorBlock.codels
+colorBlockView { codels, color } =
+    g [] <| List.map (codelView color) codels
 
 
 codelView : Color -> Point -> Svg msg
@@ -374,13 +370,6 @@ translate ( x, y ) =
         ++ String.fromFloat x
         ++ " "
         ++ String.fromFloat y
-        ++ ")"
-
-
-rgb : ( Int, Int, Int ) -> String
-rgb ( r, g, b ) =
-    "rgb("
-        ++ mapJoin String.fromInt "," [ r, g, b ]
         ++ ")"
 
 

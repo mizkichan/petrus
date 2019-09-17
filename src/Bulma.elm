@@ -8,9 +8,9 @@ type alias E msg =
     List (Attribute msg) -> List (Html msg) -> Html msg
 
 
-builder : (List (Attribute msg) -> List (Html msg) -> Html msg) -> List (Attribute msg) -> E msg
-builder element attributes =
-    element << List.append attributes
+builder : (List (Attribute msg) -> List (Html msg) -> Html msg) -> String -> E msg
+builder element className =
+    element << List.append [ class className ]
 
 
 
@@ -19,164 +19,152 @@ builder element attributes =
 
 navbar : E msg
 navbar =
-    builder div [ class "navbar" ]
+    builder div "navbar"
 
 
 navbarBrand : E msg
 navbarBrand =
-    builder div [ class "navbar-brand" ]
+    builder div "navbar-brand"
 
 
 navbarMenu : E msg
 navbarMenu =
-    builder div [ class "navbar-menu" ]
+    builder div "navbar-menu"
 
 
 navbarEnd : E msg
 navbarEnd =
-    builder div [ class "navbar-end" ]
+    builder div "navbar-end"
 
 
-navbarItem :
-    (List (Attribute msg) -> List (Html msg) -> Html msg)
-    -> List (Attribute msg)
-    -> List (Html msg)
-    -> Html msg
-navbarItem func attributes elements =
-    func
-        (class "navbar-item" :: attributes)
-        elements
+navbarItem : E msg -> E msg
+navbarItem func =
+    builder func "navbar-item"
 
 
 button : E msg
 button =
-    builder Html.button [ class "button" ]
+    builder Html.button "button"
 
 
 notification : E msg
 notification =
-    builder div [ class "notification" ]
+    builder div "notification"
 
 
 delete : E msg
 delete =
-    builder div [ class "delete" ]
+    builder div "delete"
 
 
 container : E msg
 container =
-    builder div [ class "container" ]
+    builder div "container"
 
 
 columns : E msg
 columns =
-    builder div [ class "columns" ]
+    builder div "columns"
 
 
 column : E msg
 column =
-    builder div [ class "column" ]
+    builder div "column"
 
 
 icon : E msg
 icon =
-    builder span [ class "icon" ]
+    builder span "icon"
 
 
 box : E msg
 box =
-    builder div [ class "box" ]
+    builder div "box"
 
 
 section : E msg
 section =
-    builder Html.section [ class "section" ]
+    builder Html.section "section"
 
 
 buttons : E msg
 buttons =
-    builder div [ class "buttons" ]
+    builder div "buttons"
 
 
 modal : E msg
 modal =
-    builder div [ class "modal" ]
+    builder div "modal"
 
 
 modalBackground : E msg
 modalBackground =
-    builder div [ class "modal-background" ]
+    builder div "modal-background"
 
 
 modalContent : E msg
 modalContent =
-    builder div [ class "modal-content" ]
+    builder div "modal-content"
 
 
 modalClose : E msg
 modalClose =
-    builder Html.button [ class "modal-close" ]
+    builder Html.button "modal-close"
 
 
 file : E msg
 file =
-    builder div [ class "file" ]
+    builder div "file"
 
 
-fileLabel :
-    (List (Attribute msg) -> List (Html msg) -> Html msg)
-    -> List (Attribute msg)
-    -> List (Html msg)
-    -> Html msg
-fileLabel func attributes elements =
-    func
-        (class "file-label" :: attributes)
-        elements
+fileLabel : E msg -> E msg
+fileLabel func =
+    builder func "file-label"
 
 
 fileCta : E msg
 fileCta =
-    builder span [ class "file-cta" ]
+    builder span "file-cta"
 
 
 fileIcon : E msg
 fileIcon =
-    builder span [ class "file-icon" ]
+    builder span "file-icon"
 
 
 fileName : E msg
 fileName =
-    builder span [ class "file-name" ]
+    builder span "file-name"
 
 
 field : E msg
 field =
-    builder div [ class "field" ]
+    builder div "field"
 
 
 fieldLabel : E msg
 fieldLabel =
-    builder div [ class "field-label is-normal" ]
+    builder div "field-label is-normal"
 
 
 fieldBody : E msg
 fieldBody =
-    builder div [ class "field-body" ]
+    builder div "field-body"
 
 
 input : E msg
 input =
-    builder Html.input [ class "input" ]
+    builder Html.input "input"
 
 
 label : E msg
 label =
-    builder Html.label [ class "label" ]
+    builder Html.label "label"
 
 
 control : E msg
 control =
-    builder div [ class "control" ]
+    builder div "control"
 
 
 
