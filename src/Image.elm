@@ -1,4 +1,4 @@
-module Image exposing (Codel, ColorBlock, Image, decoder, empty, getColorBlocks)
+module Image exposing (Codel, ColorBlock, Image, decoder, empty)
 
 import Color exposing (Color, Rgb)
 import Json.Decode as D
@@ -6,8 +6,11 @@ import List.Extra as List
 import Point exposing (Point)
 
 
-type Image
-    = Image (List ColorBlock)
+type alias Image =
+    { width : Int
+    , height : Int
+    , colorBlocks : List ColorBlock
+    }
 
 
 type alias ImageData =
@@ -46,14 +49,9 @@ type alias NonEmptyList a =
     ( a, List a )
 
 
-getColorBlocks : Image -> List ColorBlock
-getColorBlocks (Image cbs) =
-    cbs
-
-
 empty : Image
 empty =
-    Image []
+    Image 0 0 []
 
 
 
@@ -68,17 +66,17 @@ imageFromImageData codelSize initialImageData =
             case imageData.data of
                 r :: g :: b :: _ :: rest ->
                     let
-                        width =
+                        w =
                             imageData.width // codelSize
 
                         x =
-                            modBy width i
+                            modBy w i
 
                         y =
-                            i // width
+                            i // w
 
                         skip =
-                            if x == width - 1 then
+                            if x == w - 1 then
                                 (codelSize - 1) * (imageData.width + 1) * 4
 
                             else
@@ -94,7 +92,7 @@ imageFromImageData codelSize initialImageData =
     in
     helper initialImageData 0 []
         |> colorBlocksFromCodels
-        |> Image
+        |> Image initialImageData.width initialImageData.height
 
 
 colorBlocksFromCodels : List Codel -> List ColorBlock

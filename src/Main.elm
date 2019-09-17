@@ -1,16 +1,13 @@
 module Main exposing (main)
 
 import Browser exposing (Document)
-import Browser.Dom as Dom
 import Bulma
 import Color exposing (Color)
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
-import Html.Attributes exposing (class, classList, disabled, href, id, target, type_, value)
+import Html.Attributes exposing (class, classList, disabled, href, target, type_, value)
 import Html.Events exposing (onClick, onInput)
-import Html.Events.Extra.Mouse as Mouse
-import Html.Events.Extra.Wheel as Wheel
 import Image exposing (Image)
 import Json.Decode as D
 import Notification
@@ -69,27 +66,7 @@ type alias Model =
     , notifications : Notification.Manager
     , lastNotificationId : Int
     , image : Image
-    , mouseOperation : MouseOperation
-    , scale : Float
-    , offset : ( Float, Float )
-    , viewBox : ViewBox
     , modal : ModalModel
-    }
-
-
-type MouseOperation
-    = NoOp
-    | Drag
-        { from : ( Float, Float )
-        , to : ( Float, Float )
-        }
-
-
-type alias ViewBox =
-    { x : Float
-    , y : Float
-    , width : Float
-    , height : Float
     }
 
 
@@ -111,11 +88,6 @@ type Msg
     | OpenFile File
     | UrlEncoded String
     | ImageDecoded D.Value
-    | MouseDown Mouse.Event
-    | MouseUp Mouse.Event
-    | MouseMove Mouse.Event
-    | Wheel Wheel.Event
-    | SetImageViewSize (Result Dom.Error Dom.Element)
     | AddNotification Notification.Priority String
     | RemoveNotification Int
     | ActivateModal
@@ -150,10 +122,6 @@ init flags =
             , notifications = notifications
             , lastNotificationId = 0
             , image = Image.empty
-            , mouseOperation = NoOp
-            , scale = 1.0
-            , offset = ( 0.0, 0.0 )
-            , viewBox = ViewBox 0.0 0.0 0.0 0.0
             , modal =
                 { isActive = False
                 , file = Nothing
@@ -162,12 +130,7 @@ init flags =
                 }
             }
     in
-    ( model
-    , Cmd.batch
-        [ Dom.getElement "imageView" |> Task.attempt SetImageViewSize
-        , cmd
-        ]
-    )
+    ( model, cmd )
 
 
 
@@ -190,12 +153,7 @@ view model =
                                 , Bulma.button [] <| iconText Octicons.rocket "Run"
                                 ]
                             ]
-                        , imageView
-                            { scale = model.scale
-                            , offset = model.offset
-                            , viewBox = model.viewBox
-                            }
-                            model.image
+                        , imageView model.image
                         ]
                     , Bulma.column [] []
                     ]
@@ -231,32 +189,19 @@ logo =
     svg [ height "24", viewBox "0 0 23 5" ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
 
 
-imageView : { scale : Float, offset : ( Float, Float ), viewBox : ViewBox } -> Image -> Svg Msg
-imageView options image =
+imageView : Image -> Svg Msg
+imageView image =
     Bulma.box []
-        [ div [ id "imageView", class <| Bulma.hasBackgroundGrey ]
-            [ svg
-                [ width <| String.fromFloat options.viewBox.width
-                , height <| String.fromFloat options.viewBox.height
-                , viewBox <| mapJoin String.fromFloat " " <| [ 0.0, 0.0, options.viewBox.width, options.viewBox.height ]
-                , Mouse.onDown MouseDown
-                , Mouse.onUp MouseUp
-                , Mouse.onMove MouseMove
-                , Wheel.onWheel Wheel
-                ]
-                [ g
-                    [ transforms
-                        [ translate ( options.viewBox.width / 2, options.viewBox.height / 2 )
-                        , scale options.scale
-                        , translate ( -options.viewBox.width / 2, -options.viewBox.height / 2 )
-                        , translate options.offset
-                        ]
-                    ]
-                    (image
-                        |> Image.getColorBlocks
-                        |> List.map colorBlockView
-                    )
-                ]
+        [ svg
+            [ Svg.Attributes.class <| Bulma.isBlock
+            , viewBox <| mapJoin String.fromInt " " [ 0, 0, image.width, image.height ]
+            ]
+            [ g
+                []
+                (image
+                    |> .colorBlocks
+                    |> List.map colorBlockView
+                )
             ]
         ]
 
@@ -395,72 +340,17 @@ update msg model =
         ImageDecoded value ->
             case D.decodeValue (Image.decoder model.modal.codelSize) value of
                 Ok image ->
-                    ( { model | image = image, modal = model.modal |> deactivateModal |> unsetDecoding }, Cmd.none )
+                    ( { model
+                        | image = image
+                        , modal = model.modal |> deactivateModal |> unsetDecoding
+                      }
+                    , Cmd.none
+                    )
 
                 Err message ->
                     let
                         ( notifications, cmd ) =
                             Notification.add RemoveNotification Notification.Danger (D.errorToString message) model.notifications
-                    in
-                    ( { model | notifications = notifications }, cmd )
-
-        MouseDown { clientPos } ->
-            ( { model | mouseOperation = Drag { from = clientPos, to = clientPos } }, Cmd.none )
-
-        MouseUp _ ->
-            ( { model | mouseOperation = NoOp }, Cmd.none )
-
-        MouseMove { clientPos } ->
-            case model.mouseOperation of
-                NoOp ->
-                    ( model, Cmd.none )
-
-                Drag { from, to } ->
-                    let
-                        ( xFrom, yFrom ) =
-                            from
-
-                        ( xTo, yTo ) =
-                            clientPos
-
-                        ( dx, dy ) =
-                            ( xTo - xFrom, yTo - yFrom )
-                    in
-                    ( { model
-                        | mouseOperation = Drag { from = to, to = clientPos }
-                        , offset =
-                            Tuple.mapBoth
-                                ((+) (dx / model.scale / 2))
-                                ((+) (dy / model.scale / 2))
-                                model.offset
-                      }
-                    , Cmd.none
-                    )
-
-        Wheel { deltaY } ->
-            let
-                n =
-                    if deltaY < 0 then
-                        0.1
-
-                    else
-                        -0.1
-            in
-            ( { model | scale = model.scale * e ^ n }, Cmd.none )
-
-        SetImageViewSize result ->
-            case result of
-                Ok value ->
-                    let
-                        size =
-                            value.element.width
-                    in
-                    ( { model | viewBox = ViewBox 0.0 0.0 size size }, Cmd.none )
-
-                Err (Dom.NotFound error) ->
-                    let
-                        ( notifications, cmd ) =
-                            Notification.add RemoveNotification Notification.Danger error model.notifications
                     in
                     ( { model | notifications = notifications }, cmd )
 
