@@ -15,7 +15,7 @@ import Octicons
 import Point exposing (Point)
 import Ports
 import Svg exposing (Svg, g, path, rect, svg)
-import Svg.Attributes exposing (d, fill, height, stroke, strokeWidth, transform, viewBox, width, x, y)
+import Svg.Attributes exposing (d, dx, dy, fill, filter, height, id, stdDeviation, transform, viewBox, width, x, y)
 import Task
 
 
@@ -202,24 +202,26 @@ imageView { image, highlightedColorBlockId } =
             [ Svg.Attributes.class <| Bulma.isBlock
             , viewBox <| mapJoin String.fromInt " " [ 0, 0, image.width, image.height ]
             ]
-            [ g [] (List.indexedMap (colorBlockView highlightedColorBlockId) image.colorBlocks) ]
+            [ Svg.filter [ id "highlighted" ]
+                [ Svg.node "feDropShadow" [ dx "0", dy "0", stdDeviation "0.2" ] [] ]
+            , g [] (List.indexedMap (colorBlockView highlightedColorBlockId) image.colorBlocks)
+            ]
         ]
 
 
 colorBlockView : Maybe Int -> Int -> Image.ColorBlock -> Svg Msg
 colorBlockView highlightedColorBlockId i { codels, color } =
     let
-        strokeValue =
+        filterValue =
             if highlightedColorBlockId == Just i then
-                "white"
+                "url(#highlighted)"
 
             else
-                "grey"
+                ""
     in
     g
         [ onMouseEnter <| HighlightColorBlock i
-        , stroke strokeValue
-        , strokeWidth "0.1"
+        , filter filterValue
         ]
     <|
         List.map (codelView color) codels
