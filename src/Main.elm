@@ -15,7 +15,7 @@ import Octicons
 import Point exposing (Point)
 import Ports
 import Svg exposing (Svg, defs, g, path, rect, svg)
-import Svg.Attributes exposing (d, fill, height, stroke, strokeWidth, transform, viewBox, width, x, y)
+import Svg.Attributes exposing (d, fill, height, stroke, strokeWidth, viewBox, width, x, y)
 import Task
 
 
@@ -313,31 +313,6 @@ iconText icon string =
 
 
 
--- ATTRIBUTES
-
-
-transforms : List String -> Svg.Attribute msg
-transforms =
-    transform << String.join " "
-
-
-scale : Float -> String
-scale value =
-    "scale("
-        ++ String.fromFloat value
-        ++ ")"
-
-
-translate : ( Float, Float ) -> String
-translate ( x, y ) =
-    "translate("
-        ++ String.fromFloat x
-        ++ " "
-        ++ String.fromFloat y
-        ++ ")"
-
-
-
 -- UPDATE
 
 
@@ -441,7 +416,7 @@ setCodelSize codelSize modal =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Ports.imageDecoded ImageDecoded
         , Ports.error <| AddNotification Notification.Danger
