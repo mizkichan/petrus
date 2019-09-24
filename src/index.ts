@@ -33,8 +33,8 @@ function main() {
     image.src = uri;
   }
 
-  app.ports.decodeImage.subscribe(decodeImage);
   image.addEventListener("load", imageDecoded);
+  app.ports.decodeImage.subscribe(decodeImage);
 }
 
 window.addEventListener("DOMContentLoaded", main);

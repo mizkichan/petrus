@@ -10,7 +10,6 @@ import Html.Attributes exposing (class, classList, disabled, href, target, type_
 import Html.Events exposing (onClick, onInput)
 import Image exposing (Image)
 import Json.Decode as D
-import Notification
 import Octicons
 import Point exposing (Point)
 import Ports
@@ -63,7 +62,7 @@ decodeFlags =
 
 type alias Model =
     { flags : Flags
-    , notifications : Notification.Manager
+    , notification : String
     , lastNotificationId : Int
     , image : Image
     , modal : ModalModel
@@ -89,12 +88,11 @@ type Msg
     | OpenFile File
     | UrlEncoded String
     | ImageDecoded D.Value
-    | AddNotification Notification.Priority String
-    | RemoveNotification Int
     | ActivateModal
     | DeactivateModal
     | SetCodelSize String
     | ToggleNavbar
+    | ShowNotification String
 
 
 
@@ -107,21 +105,14 @@ init flags =
         ( decodedFlags, decodeError ) =
             case decodeFlags flags of
                 Ok decoded ->
-                    ( decoded, Nothing )
+                    ( decoded, "" )
 
                 Err error ->
-                    ( defaultFlags, Just error )
-
-        ( notifications, cmd ) =
-            Notification.empty
-                |> (decodeError
-                        |> Maybe.map (D.errorToString >> Notification.add RemoveNotification Notification.Danger)
-                        |> Maybe.withDefault (Notification.add RemoveNotification Notification.Info "Hello, world!")
-                   )
+                    ( defaultFlags, D.errorToString error )
 
         model =
             { flags = decodedFlags
-            , notifications = notifications
+            , notification = decodeError
             , lastNotificationId = 0
             , image = Image.empty
             , modal =
@@ -133,7 +124,7 @@ init flags =
             , isNavbarActive = False
             }
     in
-    ( model, cmd )
+    ( model, Cmd.none )
 
 
 
@@ -148,10 +139,10 @@ view model =
             { repositoryUrl = model.flags.repositoryUrl
             , isNavbarActive = model.isNavbarActive
             }
-        , Notification.view RemoveNotification model.notifications
         , Bulma.section []
             [ Bulma.container []
-                [ Bulma.columns []
+                [ notification model.notification
+                , Bulma.columns []
                     [ Bulma.column []
                         [ Bulma.box []
                             [ Bulma.buttons []
@@ -202,6 +193,18 @@ navbar { repositoryUrl, isNavbarActive } =
 logo : Html msg
 logo =
     svg [ height "24", viewBox [ 0, 0, 23, 5 ] ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
+
+
+notification : String -> Html Msg
+notification message =
+    if String.isEmpty message then
+        text ""
+
+    else
+        Bulma.notification []
+            [ Bulma.delete [ onClick <| ShowNotification "" ] []
+            , text message
+            ]
 
 
 imageView : Image -> Html Msg
@@ -357,21 +360,7 @@ update msg model =
                     )
 
                 Err message ->
-                    let
-                        ( notifications, cmd ) =
-                            Notification.add RemoveNotification Notification.Danger (D.errorToString message) model.notifications
-                    in
-                    ( { model | notifications = notifications }, cmd )
-
-        AddNotification priority message ->
-            let
-                ( notifications, cmd ) =
-                    Notification.add RemoveNotification priority message model.notifications
-            in
-            ( { model | notifications = notifications }, cmd )
-
-        RemoveNotification id ->
-            ( { model | notifications = Notification.remove id model.notifications }, Cmd.none )
+                    ( { model | notification = D.errorToString message }, Cmd.none )
 
         ActivateModal ->
             ( { model | modal = activateModal model.modal }, openFileDialog )
@@ -389,6 +378,9 @@ update msg model =
 
         ToggleNavbar ->
             ( { model | isNavbarActive = not model.isNavbarActive }, Cmd.none )
+
+        ShowNotification message ->
+            ( { model | notification = message }, Cmd.none )
 
 
 openFileDialog : Cmd Msg
@@ -434,7 +426,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Ports.imageDecoded ImageDecoded
-        , Ports.error <| AddNotification Notification.Danger
+        , Ports.error ShowNotification
         ]
 
 
