@@ -1,6 +1,6 @@
-module Bulma exposing (box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, hasName, icon, input, isActive, isBlock, isDanger, isHorizontal, isInfo, isLoading, isPrimary, isSuccess, isWarning, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarEnd, navbarItem, navbarMenu, notification, section)
+module Bulma exposing (box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, hasName, icon, input, isActive, isBlock, isDanger, isHorizontal, isInfo, isLoading, isPrimary, isSuccess, isWarning, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarBurger, navbarEnd, navbarItem, navbarMenu, notification, section)
 
-import Html exposing (Attribute, Html, div, span)
+import Html exposing (Attribute, Html, a, div, span)
 import Html.Attributes exposing (class)
 
 
@@ -40,6 +40,11 @@ navbarEnd =
 navbarItem : E msg -> E msg
 navbarItem func =
     builder func "navbar-item"
+
+
+navbarBurger : List (Attribute msg) -> Html msg
+navbarBurger attributes =
+    builder a "navbar-burger" attributes [ span [] [], span [] [], span [] [] ]
 
 
 button : E msg

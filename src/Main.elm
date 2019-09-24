@@ -68,6 +68,7 @@ type alias Model =
     , image : Image
     , modal : ModalModel
     , highlightedColorBlockId : Maybe Int
+    , isNavbarActive : Bool
     }
 
 
@@ -95,6 +96,7 @@ type Msg
     | DeactivateModal
     | SetCodelSize String
     | HighlightColorBlock Int
+    | ToggleNavbar
 
 
 
@@ -131,6 +133,7 @@ init flags =
                 , isDecoding = False
                 }
             , highlightedColorBlockId = Nothing
+            , isNavbarActive = False
             }
     in
     ( model, cmd )
@@ -143,7 +146,10 @@ init flags =
 view : Model -> Document Msg
 view model =
     Document model.flags.title
-        [ navbar { repositoryUrl = model.flags.repositoryUrl }
+        [ navbar
+            { repositoryUrl = model.flags.repositoryUrl
+            , isNavbarActive = model.isNavbarActive
+            }
         , Notification.view RemoveNotification model.notifications
         , Bulma.section []
             [ Bulma.container []
@@ -169,12 +175,22 @@ view model =
         ]
 
 
-navbar : { repositoryUrl : String } -> Html Msg
-navbar { repositoryUrl } =
+navbar :
+    { repositoryUrl : String
+    , isNavbarActive : Bool
+    }
+    -> Html Msg
+navbar { repositoryUrl, isNavbarActive } =
     Bulma.navbar []
         [ Bulma.container []
-            [ Bulma.navbarBrand [] [ Bulma.navbarItem div [] [ logo ] ]
-            , Bulma.navbarMenu []
+            [ Bulma.navbarBrand []
+                [ Bulma.navbarItem div [] [ logo ]
+                , Bulma.navbarBurger
+                    [ classList [ ( Bulma.isActive, isNavbarActive ) ]
+                    , onClick ToggleNavbar
+                    ]
+                ]
+            , Bulma.navbarMenu [ classList [ ( Bulma.isActive, isNavbarActive ) ] ]
                 [ Bulma.navbarEnd []
                     [ Bulma.navbarItem a
                         [ href "http://www.dangermouse.net/esoteric/piet.html", target "_blank" ]
@@ -402,6 +418,9 @@ update msg model =
 
         HighlightColorBlock i ->
             ( { model | highlightedColorBlockId = Just i }, Cmd.none )
+
+        ToggleNavbar ->
+            ( { model | isNavbarActive = not model.isNavbarActive }, Cmd.none )
 
 
 openFileDialog : Cmd Msg
