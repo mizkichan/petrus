@@ -92,7 +92,7 @@ imageFromImageData codelSize initialImageData =
     in
     helper initialImageData 0 []
         |> colorBlocksFromCodels
-        |> Image initialImageData.width initialImageData.height
+        |> Image (initialImageData.width // codelSize) (initialImageData.height // codelSize)
 
 
 colorBlocksFromCodels : List Codel -> List ColorBlock
@@ -121,7 +121,12 @@ colorBlocksFromCodels codels =
                 gatherer ( x, xs ) ( y, ys ) =
                     let
                         hasSameColor =
-                            x.color == y.color
+                            case ( x.color, y.color ) of
+                                ( Color.Chromatic xLightness xHue, Color.Chromatic yLightness yHue ) ->
+                                    xLightness == yLightness && xHue == yHue
+
+                                ( _, _ ) ->
+                                    False
 
                         hasAdjacentCodel =
                             let

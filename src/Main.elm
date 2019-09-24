@@ -14,7 +14,7 @@ import Notification
 import Octicons
 import Point exposing (Point)
 import Ports
-import Svg exposing (Svg, g, path, rect, svg)
+import Svg exposing (Svg, defs, g, path, rect, svg)
 import Svg.Attributes exposing (d, dx, dy, fill, filter, height, id, stdDeviation, transform, viewBox, width, x, y)
 import Task
 
@@ -151,9 +151,9 @@ view model =
                     [ Bulma.column []
                         [ Bulma.box []
                             [ Bulma.buttons []
-                                [ Bulma.button [ onClick ActivateModal ] <| iconText Octicons.fileMedia "Open"
-                                , Bulma.button [] <| iconText Octicons.circuitBoard "Build"
-                                , Bulma.button [] <| iconText Octicons.rocket "Run"
+                                [ Bulma.button [ onClick ActivateModal ] [ iconText Octicons.fileMedia "Open" ]
+                                , Bulma.button [] [ iconText Octicons.circuitBoard "Build" ]
+                                , Bulma.button [] [ iconText Octicons.rocket "Run" ]
                                 ]
                             ]
                         , imageView
@@ -177,13 +177,11 @@ navbar { repositoryUrl } =
             , Bulma.navbarMenu []
                 [ Bulma.navbarEnd []
                     [ Bulma.navbarItem a
-                        [ href "http://www.dangermouse.net/esoteric/piet.html"
-                        , target "_blank"
-                        ]
-                      <|
-                        textIcon Octicons.linkExternal "Piet language specification"
-                    , Bulma.navbarItem a [ href repositoryUrl ] <|
-                        iconText Octicons.markGithub "GitHub"
+                        [ href "http://www.dangermouse.net/esoteric/piet.html", target "_blank" ]
+                        [ textIcon Octicons.linkExternal "Piet language specification" ]
+                    , Bulma.navbarItem a
+                        [ href repositoryUrl ]
+                        [ iconText Octicons.markGithub "GitHub" ]
                     ]
                 ]
             ]
@@ -197,13 +195,19 @@ logo =
 
 imageView : { image : Image, highlightedColorBlockId : Maybe Int } -> Svg Msg
 imageView { image, highlightedColorBlockId } =
+    let
+        svgDefs =
+            defs []
+                [ Svg.filter [ id "highlighted" ]
+                    [ Svg.node "feDropShadow" [ dx "0", dy "0", stdDeviation "0.2" ] [] ]
+                ]
+    in
     Bulma.box []
         [ svg
             [ Svg.Attributes.class <| Bulma.isBlock
             , viewBox <| mapJoin String.fromInt " " [ 0, 0, image.width, image.height ]
             ]
-            [ Svg.filter [ id "highlighted" ]
-                [ Svg.node "feDropShadow" [ dx "0", dy "0", stdDeviation "0.2" ] [] ]
+            [ svgDefs
             , g [] (List.indexedMap (colorBlockView highlightedColorBlockId) image.colorBlocks)
             ]
         ]
@@ -295,18 +299,20 @@ fileModalView options =
         ]
 
 
-textIcon : (Octicons.Options -> Html msg) -> String -> List (Html msg)
+textIcon : (Octicons.Options -> Html msg) -> String -> Html msg
 textIcon icon string =
-    [ span [] [ text string ]
-    , Bulma.icon [] [ icon Octicons.defaultOptions ]
-    ]
+    span []
+        [ span [] [ text string ]
+        , Bulma.icon [] [ icon Octicons.defaultOptions ]
+        ]
 
 
-iconText : (Octicons.Options -> Html msg) -> String -> List (Html msg)
+iconText : (Octicons.Options -> Html msg) -> String -> Html msg
 iconText icon string =
-    [ Bulma.icon [] [ icon Octicons.defaultOptions ]
-    , span [] [ text string ]
-    ]
+    span []
+        [ Bulma.icon [] [ icon Octicons.defaultOptions ]
+        , span [] [ text string ]
+        ]
 
 
 
