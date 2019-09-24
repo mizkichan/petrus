@@ -1,4 +1,4 @@
-module Bulma exposing (box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, hasName, icon, input, isActive, isBlock, isDanger, isHorizontal, isInfo, isLoading, isPrimary, isSuccess, isWarning, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarBurger, navbarEnd, navbarItem, navbarMenu, notification, section)
+module Bulma exposing (box, button, buttons, column, columns, container, control, delete, field, fieldBody, fieldLabel, file, fileCta, fileIcon, fileLabel, fileName, hasName, icon, input, isActive, isBlock, isDanger, isHidden, isHorizontal, isInfo, isLoading, isPrimary, isSuccess, isWarning, label, modal, modalBackground, modalClose, modalContent, navbar, navbarBrand, navbarBurger, navbarEnd, navbarItem, navbarMenu, notification, section)
 
 import Html exposing (Attribute, Html, a, div, span)
 import Html.Attributes exposing (class)
@@ -219,6 +219,11 @@ isLoading =
 isBlock : String
 isBlock =
     "is-block"
+
+
+isHidden : String
+isHidden =
+    "is-hidden"
 
 
 hasName : String

@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Browser exposing (Document)
 import Bulma
-import Color exposing (Color)
+import Color
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
@@ -14,8 +14,8 @@ import Notification
 import Octicons
 import Point exposing (Point)
 import Ports
-import Svg exposing (Svg, defs, g, path, rect, svg)
-import Svg.Attributes exposing (d, fill, height, stroke, strokeWidth, viewBox, width, x, y)
+import Svg exposing (g, path, rect, svg, use)
+import Svg.Attributes exposing (d, fill, height, id, stroke, strokeWidth, width, x, xlinkHref, y)
 import Task
 
 
@@ -143,7 +143,8 @@ init flags =
 view : Model -> Document Msg
 view model =
     Document model.flags.title
-        [ navbar
+        [ defs
+        , navbar
             { repositoryUrl = model.flags.repositoryUrl
             , isNavbarActive = model.isNavbarActive
             }
@@ -198,44 +199,33 @@ navbar { repositoryUrl, isNavbarActive } =
         ]
 
 
-logo : Svg msg
+logo : Html msg
 logo =
-    svg [ height "24", viewBox "0 0 23 5" ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
+    svg [ height "24", viewBox [ 0, 0, 23, 5 ] ] [ path [ d "M0,0v5h1v-2h1v-1h-1v-1h1v1h1v-2m1,0v5h3v-1h-2v-1h2v-1h-2v-1h2v-1m1,0v1h1v4h1v-4h1v-1m1,0v5h1v-2h1v2h1v-2h-1v-1h-1v-1h1v1h1v-2m1,0v5h3v-5h-1v4h-1v-4zm4,0v3h2v1h-2v1h3v-3h-2v-1h2v-1" ] [] ]
 
 
-imageView : Image -> Svg Msg
+imageView : Image -> Html Msg
 imageView image =
-    let
-        svgDefs =
-            defs []
-                []
-    in
     Bulma.box []
         [ svg
             [ Svg.Attributes.class <| Bulma.isBlock
-            , viewBox <| mapJoin String.fromInt " " [ 0, 0, image.width, image.height ]
+            , viewBox [ 0, 0, toFloat image.width, toFloat image.height ]
             ]
-            [ svgDefs
-            , g [] (List.map colorBlockView image.colorBlocks)
-            ]
+            [ g [] (List.map colorBlockView image.colorBlocks) ]
         ]
 
 
-colorBlockView : Image.ColorBlock -> Svg Msg
+colorBlockView : Image.ColorBlock -> Html Msg
 colorBlockView { codels, color } =
-    g [] <| List.map (codelView color) codels
+    g [ fill <| Color.toString color ] <| List.map codelView codels
 
 
-codelView : Color -> Point -> Svg msg
-codelView color point =
-    rect
-        [ x <| String.fromInt <| point.x
+codelView : Point -> Html msg
+codelView point =
+    use
+        [ xlinkHref "#codel"
+        , x <| String.fromInt <| point.x
         , y <| String.fromInt <| point.y
-        , width "1"
-        , height "1"
-        , fill <| Color.toString color
-        , stroke "black"
-        , strokeWidth "0.01"
         ]
         []
 
@@ -296,6 +286,22 @@ fileModalView options =
         ]
 
 
+defs : Html msg
+defs =
+    svg [ Svg.Attributes.class Bulma.isHidden ]
+        [ Svg.defs []
+            [ rect
+                [ id "codel"
+                , width "1"
+                , height "1"
+                , stroke "black"
+                , strokeWidth "0.01"
+                ]
+                []
+            ]
+        ]
+
+
 textIcon : (Octicons.Options -> Html msg) -> String -> Html msg
 textIcon icon string =
     span []
@@ -310,6 +316,15 @@ iconText icon string =
         [ Bulma.icon [] [ icon Octicons.defaultOptions ]
         , span [] [ text string ]
         ]
+
+
+
+-- ATTRIBUTES
+
+
+viewBox : List Float -> Svg.Attribute msg
+viewBox vb =
+    Svg.Attributes.viewBox <| String.join " " <| List.map String.fromFloat vb
 
 
 
@@ -421,16 +436,6 @@ subscriptions _ =
         [ Ports.imageDecoded ImageDecoded
         , Ports.error <| AddNotification Notification.Danger
         ]
-
-
-
--- MISC
-
-
-mapJoin : (a -> String) -> String -> List a -> String
-mapJoin func separator =
-    String.join separator
-        << List.map func
 
 
 
