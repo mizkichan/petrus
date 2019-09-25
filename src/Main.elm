@@ -213,6 +213,7 @@ imageView image =
         [ svg
             [ Svg.Attributes.class <| Bulma.isBlock
             , viewBox [ 0, 0, toFloat image.width, toFloat image.height ]
+            , width "100%"
             ]
             [ g [] (List.map colorBlockView image.colorBlocks) ]
         ]
