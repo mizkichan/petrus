@@ -1,25 +1,24 @@
 export namespace Elm {
   namespace Main {
-    interface App {
+    interface Elm {
       ports: Ports;
     }
     interface Ports {
       imageDecoded: Send<{ width: number; height: number; data: number[] }>;
-      decodeImage: Subscribe<string, void>;
+      decodeImage: Subscribe<string>;
       error: Send<string>;
     }
-    interface Subscribe<T, U> {
-      subscribe(callback: (value: T) => U): void;
+    interface Subscribe<T> {
+      subscribe(callback: (value: T) => void): void;
     }
     interface Send<T> {
       send(value: T): void;
     }
-    interface Port<T> {}
     interface Flags {
       repositoryUrl: string;
       title: string;
     }
-    function init(value: { flags: Flags }): App;
+    function init(value: { flags: Flags }): Elm;
   }
 }
 
