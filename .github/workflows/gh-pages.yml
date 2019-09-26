@@ -1,3 +1,5 @@
+name: GitHub Pages
+
 on:
   push:
     branches:
@@ -8,16 +10,14 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
-      - uses: actions/npm@v2.0.0
+      - uses: actions/setup-node@v1
         with:
-          args: install elm
-      - uses: actions/npm@v2.0.0
-        with:
-          args: run build
+          node-version: 10.x
+      - run: npm install --no-save elm
+      - run: npm run build
       - uses: peaceiris/actions-gh-pages@v2.3.1
         env:
           ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
           PUBLISH_BRANCH: gh-pages
           PUBLISH_DIR: dist
-
 # vim: set ts=2 sw=2 et:
