@@ -1,9 +1,12 @@
-module Image exposing (Codel, ColorBlock, Image, decoder, empty)
+module Image exposing (Codel, ColorBlock, Image, decoder, defs, empty, view)
 
+import Bulma
 import Color exposing (Color, Rgb)
 import Json.Decode as D
 import List.Extra as List
 import Point exposing (Point)
+import Svg exposing (Svg, g, rect, svg, use)
+import Svg.Attributes exposing (class, fill, height, id, stroke, strokeWidth, viewBox, width, x, xlinkHref, y)
 
 
 type alias Image =
@@ -234,6 +237,53 @@ decoder codelSize =
         (D.field "height" D.int)
         (D.field "data" (D.list D.int))
         |> D.map (imageFromImageData codelSize)
+
+
+
+-- VIEW
+
+
+view : Image -> Svg msg
+view image =
+    Bulma.box []
+        [ svg
+            [ class <| Bulma.isBlock
+            , viewBox <| "0 0 " ++ String.fromInt image.width ++ " " ++ String.fromInt image.height
+            , width "100%"
+            ]
+            [ g [] (List.map colorBlockView image.colorBlocks) ]
+        ]
+
+
+colorBlockView : ColorBlock -> Svg msg
+colorBlockView { codels, color } =
+    g [ fill <| Color.toString color ] <| List.map codelView codels
+
+
+codelView : Point -> Svg msg
+codelView point =
+    use
+        [ xlinkHref "#codel"
+        , x <| String.fromInt <| point.x
+        , y <| String.fromInt <| point.y
+        ]
+        []
+
+
+defs : Svg msg
+defs =
+    svg [ class Bulma.isHidden ]
+        [ Svg.defs []
+            [ rect
+                [ id "codel"
+                , width "1"
+                , height "1"
+                , stroke "black"
+                , strokeWidth "0.01"
+                ]
+                []
+            ]
+        ]
 
 
 

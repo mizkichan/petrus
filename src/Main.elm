@@ -2,7 +2,6 @@ module Main exposing (main)
 
 import Browser exposing (Document)
 import Bulma
-import Color
 import File exposing (File)
 import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
@@ -11,10 +10,9 @@ import Html.Events exposing (onClick, onInput)
 import Image exposing (Image)
 import Json.Decode as D
 import Octicons
-import Point exposing (Point)
 import Ports
-import Svg exposing (g, path, rect, svg, use)
-import Svg.Attributes exposing (d, fill, height, id, stroke, strokeWidth, width, x, xlinkHref, y)
+import Svg exposing (path, svg)
+import Svg.Attributes exposing (d, height)
 import Task
 
 
@@ -134,7 +132,7 @@ init flags =
 view : Model -> Document Msg
 view model =
     Document model.flags.title
-        [ defs
+        [ Image.defs
         , navbar
             { repositoryUrl = model.flags.repositoryUrl
             , isNavbarActive = model.isNavbarActive
@@ -151,7 +149,7 @@ view model =
                                 , Bulma.button [] [ iconText Octicons.rocket "Run" ]
                                 ]
                             ]
-                        , imageView model.image
+                        , Image.view model.image
                         ]
                     , Bulma.column [] []
                     ]
@@ -207,33 +205,6 @@ notification message =
             ]
 
 
-imageView : Image -> Html Msg
-imageView image =
-    Bulma.box []
-        [ svg
-            [ Svg.Attributes.class <| Bulma.isBlock
-            , viewBox [ 0, 0, toFloat image.width, toFloat image.height ]
-            , width "100%"
-            ]
-            [ g [] (List.map colorBlockView image.colorBlocks) ]
-        ]
-
-
-colorBlockView : Image.ColorBlock -> Html Msg
-colorBlockView { codels, color } =
-    g [ fill <| Color.toString color ] <| List.map codelView codels
-
-
-codelView : Point -> Html msg
-codelView point =
-    use
-        [ xlinkHref "#codel"
-        , x <| String.fromInt <| point.x
-        , y <| String.fromInt <| point.y
-        ]
-        []
-
-
 fileModalView : ModalModel -> Html Msg
 fileModalView options =
     Bulma.modal [ classList [ ( Bulma.isActive, options.isActive ) ] ]
@@ -287,22 +258,6 @@ fileModalView options =
                 ]
             ]
         , Bulma.modalClose [ onClick DeactivateModal ] []
-        ]
-
-
-defs : Html msg
-defs =
-    svg [ Svg.Attributes.class Bulma.isHidden ]
-        [ Svg.defs []
-            [ rect
-                [ id "codel"
-                , width "1"
-                , height "1"
-                , stroke "black"
-                , strokeWidth "0.01"
-                ]
-                []
-            ]
         ]
 
 
