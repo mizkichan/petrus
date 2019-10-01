@@ -1,17 +1,11 @@
 import { Elm } from "./Main.elm";
-import packageJson from "../package.json";
 
 const canvas = document.createElement("canvas");
 const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 const image = new Image();
 
 function main() {
-  const app = Elm.Main.init({
-    flags: {
-      repositoryUrl: packageJson.repository.url,
-      title: `${packageJson.name} - ${packageJson.description}`
-    }
-  });
+  const app = Elm.Main.init();
 
   function error(ev: ErrorEvent) {
     app.ports.error.send(ev.error.toString());

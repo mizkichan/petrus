@@ -14,11 +14,7 @@ export namespace Elm {
     interface Send<T> {
       send(value: T): void;
     }
-    interface Flags {
-      repositoryUrl: string;
-      title: string;
-    }
-    function init(value: { flags: Flags }): Elm;
+    function init(): Elm;
   }
 }
 

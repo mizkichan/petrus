@@ -20,7 +20,7 @@ import Task
 -- MAIN
 
 
-main : Program D.Value Model Msg
+main : Program () Model Msg
 main =
     Browser.document
         { init = init
@@ -31,36 +31,11 @@ main =
 
 
 
--- FLAGS
-
-
-type alias Flags =
-    { repositoryUrl : String
-    , title : String
-    }
-
-
-defaultFlags : Flags
-defaultFlags =
-    Flags "" ""
-
-
-decodeFlags : D.Value -> Result D.Error Flags
-decodeFlags =
-    D.decodeValue
-        (D.map2 Flags
-            (D.field "repositoryUrl" D.string)
-            (D.field "title" D.string)
-        )
-
-
-
 -- Model
 
 
 type alias Model =
-    { flags : Flags
-    , notification : String
+    { notification : String
     , lastNotificationId : Int
     , image : Image
     , modal : ModalModel
@@ -97,32 +72,21 @@ type Msg
 -- INIT
 
 
-init : D.Value -> ( Model, Cmd Msg )
-init flags =
-    let
-        ( decodedFlags, decodeError ) =
-            case decodeFlags flags of
-                Ok decoded ->
-                    ( decoded, "" )
-
-                Err error ->
-                    ( defaultFlags, D.errorToString error )
-
-        model =
-            { flags = decodedFlags
-            , notification = decodeError
-            , lastNotificationId = 0
-            , image = Image.empty
-            , modal =
-                { isActive = False
-                , file = Nothing
-                , codelSize = 1
-                , isDecoding = False
-                }
-            , isNavbarActive = False
+init : () -> ( Model, Cmd Msg )
+init () =
+    ( { notification = ""
+      , lastNotificationId = 0
+      , image = Image.empty
+      , modal =
+            { isActive = False
+            , file = Nothing
+            , codelSize = 1
+            , isDecoding = False
             }
-    in
-    ( model, Cmd.none )
+      , isNavbarActive = False
+      }
+    , Cmd.none
+    )
 
 
 
@@ -131,12 +95,9 @@ init flags =
 
 view : Model -> Document Msg
 view model =
-    Document model.flags.title
+    Document "Petrus - A Piet compiler."
         [ Image.defs
-        , navbar
-            { repositoryUrl = model.flags.repositoryUrl
-            , isNavbarActive = model.isNavbarActive
-            }
+        , navbar model.isNavbarActive
         , Bulma.section []
             [ Bulma.container []
                 [ notification model.notification
@@ -159,28 +120,24 @@ view model =
         ]
 
 
-navbar :
-    { repositoryUrl : String
-    , isNavbarActive : Bool
-    }
-    -> Html Msg
-navbar { repositoryUrl, isNavbarActive } =
+navbar : Bool -> Html Msg
+navbar isActive =
     Bulma.navbar []
         [ Bulma.container []
             [ Bulma.navbarBrand []
                 [ Bulma.navbarItem div [] [ logo ]
                 , Bulma.navbarBurger
-                    [ classList [ ( Bulma.isActive, isNavbarActive ) ]
+                    [ classList [ ( Bulma.isActive, isActive ) ]
                     , onClick ToggleNavbar
                     ]
                 ]
-            , Bulma.navbarMenu [ classList [ ( Bulma.isActive, isNavbarActive ) ] ]
+            , Bulma.navbarMenu [ classList [ ( Bulma.isActive, isActive ) ] ]
                 [ Bulma.navbarEnd []
                     [ Bulma.navbarItem a
                         [ href "http://www.dangermouse.net/esoteric/piet.html", target "_blank" ]
                         [ textIcon Octicons.linkExternal "Piet language specification" ]
                     , Bulma.navbarItem a
-                        [ href repositoryUrl ]
+                        [ href "https://github.com/mizkichan/petrus" ]
                         [ iconText Octicons.markGithub "GitHub" ]
                     ]
                 ]
