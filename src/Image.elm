@@ -5,8 +5,8 @@ import Color exposing (Color, Rgb)
 import Json.Decode as D
 import List.Extra as List
 import Point exposing (Point)
-import Svg exposing (Svg, g, rect, svg, use)
-import Svg.Attributes exposing (class, fill, height, id, stroke, strokeWidth, viewBox, width, x, xlinkHref, y)
+import Svg exposing (Svg, g, polyline, rect, svg, use)
+import Svg.Attributes exposing (class, fill, height, id, points, stroke, strokeWidth, transform, viewBox, width, x, xlinkHref, y)
 
 
 type alias Image =
@@ -124,12 +124,7 @@ colorBlocksFromCodels codels =
                 gatherer ( x, xs ) ( y, ys ) =
                     let
                         hasSameColor =
-                            case ( x.color, y.color ) of
-                                ( Color.Chromatic xLightness xHue, Color.Chromatic yLightness yHue ) ->
-                                    xLightness == yLightness && xHue == yHue
-
-                                ( _, _ ) ->
-                                    False
+                            x.color == y.color
 
                         hasAdjacentCodel =
                             let
@@ -251,13 +246,59 @@ view image =
             , viewBox <| "0 0 " ++ String.fromInt image.width ++ " " ++ String.fromInt image.height
             , width "100%"
             ]
-            [ g [] (List.map colorBlockView image.colorBlocks) ]
+            [ g [] <| List.map colorBlockView image.colorBlocks
+            , g [] <| List.map arrowsView image.colorBlocks
+            ]
         ]
 
 
 colorBlockView : ColorBlock -> Svg msg
 colorBlockView { codels, color } =
     g [ fill <| Color.toString color ] <| List.map codelView codels
+
+
+arrowsView : ColorBlock -> Svg msg
+arrowsView { table } =
+    g []
+        [ rightArrow table.rl
+        , rightArrow table.rr
+        , bottomArrow table.dl
+        , bottomArrow table.dr
+        , leftArrow table.ll
+        , leftArrow table.lr
+        , topArrow table.ul
+        , topArrow table.ur
+        ]
+
+
+arrow : String -> Point -> Svg msg
+arrow href point =
+    use
+        [ xlinkHref href
+        , x <| String.fromFloat <| toFloat point.x + 0.5
+        , y <| String.fromFloat <| toFloat point.y + 0.5
+        ]
+        []
+
+
+rightArrow : Point -> Svg msg
+rightArrow =
+    arrow "#right-arrow"
+
+
+bottomArrow : Point -> Svg msg
+bottomArrow =
+    arrow "#bottom-arrow"
+
+
+leftArrow : Point -> Svg msg
+leftArrow =
+    arrow "#left-arrow"
+
+
+topArrow : Point -> Svg msg
+topArrow =
+    arrow "#top-arrow"
 
 
 codelView : Point -> Svg msg
@@ -280,6 +321,31 @@ defs =
                 , height "1"
                 , stroke "black"
                 , strokeWidth "0.01"
+                ]
+                []
+            , polyline
+                [ id "right-arrow"
+                , points "0.2,0 0.8,0 0.6,-0.1 0.6,0.1 0.8,0"
+                , stroke "black"
+                , strokeWidth "0.1"
+                ]
+                []
+            , use
+                [ id "bottom-arrow"
+                , xlinkHref "#right-arrow"
+                , transform "rotate(90)"
+                ]
+                []
+            , use
+                [ id "left-arrow"
+                , xlinkHref "#right-arrow"
+                , transform "rotate(180)"
+                ]
+                []
+            , use
+                [ id "top-arrow"
+                , xlinkHref "#right-arrow"
+                , transform "rotate(270)"
                 ]
                 []
             ]
