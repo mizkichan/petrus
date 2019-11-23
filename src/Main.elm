@@ -7,8 +7,7 @@ import File.Select exposing (file)
 import Html exposing (Html, a, div, fieldset, label, span, text)
 import Html.Attributes exposing (class, classList, disabled, href, target, type_, value)
 import Html.Events exposing (onClick, onInput)
-import Image exposing (Image)
-import Json.Decode as D
+import Image exposing (Image, ImageData)
 import Octicons
 import Ports
 import Svg exposing (path, svg)
@@ -60,7 +59,7 @@ type Msg
     | FileSelected File
     | OpenFile File
     | UrlEncoded String
-    | ImageDecoded D.Value
+    | ImageDecoded ImageData
     | ActivateModal
     | DeactivateModal
     | SetCodelSize String
@@ -262,18 +261,13 @@ update msg model =
         UrlEncoded url ->
             ( model, Ports.decodeImage url )
 
-        ImageDecoded value ->
-            case D.decodeValue (Image.decoder model.modal.codelSize) value of
-                Ok image ->
-                    ( { model
-                        | image = image
-                        , modal = model.modal |> deactivateModal |> unsetDecoding
-                      }
-                    , Cmd.none
-                    )
-
-                Err message ->
-                    ( { model | notification = D.errorToString message }, Cmd.none )
+        ImageDecoded imageData ->
+            ( { model
+                | image = Image.fromImageData model.modal.codelSize imageData
+                , modal = model.modal |> deactivateModal |> unsetDecoding
+              }
+            , Cmd.none
+            )
 
         ActivateModal ->
             ( { model | modal = activateModal model.modal }, openFileDialog )

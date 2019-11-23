@@ -1,12 +1,12 @@
 port module Ports exposing (decodeImage, error, imageDecoded)
 
-import Json.Decode as D
+import Image exposing (ImageData)
 
 
 port decodeImage : String -> Cmd msg
 
 
-port imageDecoded : (D.Value -> msg) -> Sub msg
+port imageDecoded : (ImageData -> msg) -> Sub msg
 
 
 port error : (String -> msg) -> Sub msg

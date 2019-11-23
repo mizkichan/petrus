@@ -1,8 +1,7 @@
-module Image exposing (Codel, ColorBlock, Image, decoder, defs, empty, view)
+module Image exposing (Codel, ColorBlock, Image, ImageData, defs, empty, fromImageData, view)
 
 import Bulma
 import Color exposing (Color, Rgb)
-import Json.Decode as D
 import List.Extra as List
 import Point exposing (Point)
 import Svg exposing (Svg, g, polyline, rect, svg, use)
@@ -61,8 +60,8 @@ empty =
 -- DECODER
 
 
-imageFromImageData : Int -> ImageData -> Image
-imageFromImageData codelSize initialImageData =
+fromImageData : Int -> ImageData -> Image
+fromImageData codelSize initialImageData =
     let
         helper : ImageData -> Int -> List Codel -> List Codel
         helper imageData i result =
@@ -223,15 +222,6 @@ generateTable colorBlock =
             upperEdge |> List.maximumBy .x |> Maybe.withDefault (Point 0 0)
     in
     Table rl rr dl dr ll lr ul ur
-
-
-decoder : Int -> D.Decoder Image
-decoder codelSize =
-    D.map3 ImageData
-        (D.field "width" D.int)
-        (D.field "height" D.int)
-        (D.field "data" (D.list D.int))
-        |> D.map (imageFromImageData codelSize)
 
 
 
